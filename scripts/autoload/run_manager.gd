@@ -51,6 +51,9 @@ var scrap_earned: int = 0
 ## Transmissions seen/collected this run (transmission IDs).
 var transmissions_seen: Array = []
 
+## Sector played this run.
+var sector_id: String = "relay_spine"
+
 
 ## ============================================================================
 ## PUBLIC API

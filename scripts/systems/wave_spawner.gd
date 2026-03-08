@@ -194,8 +194,14 @@ func _spawn_enemy(enemy_id: String) -> void:
 	var enemy: Node2D = scene.instantiate()
 	add_child(enemy)
 
-	## Get path from first spawn point to core
-	var spawn: Vector2i = _grid_manager.spawn_points[0] if _grid_manager.spawn_points.size() > 0 else Vector2i(0, 4)
+	## Pick a random spawn point (supports multi-spawn sectors)
+	var spawn: Vector2i
+	if _grid_manager.spawn_points.size() > 1:
+		spawn = _grid_manager.spawn_points[randi() % _grid_manager.spawn_points.size()]
+	elif _grid_manager.spawn_points.size() == 1:
+		spawn = _grid_manager.spawn_points[0]
+	else:
+		spawn = Vector2i(0, 4)
 	var path: PackedVector2Array = _pathfinder.get_path_to_core(spawn)
 
 	if path.is_empty():

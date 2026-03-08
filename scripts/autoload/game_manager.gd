@@ -191,6 +191,18 @@ func release_power(cost: int) -> void:
 	power_changed.emit(power_used, power_cap)
 
 
+## Add to power cap (e.g. from power nodes or upgrades).
+func add_power_cap(amount: int) -> void:
+	power_cap += amount
+	power_changed.emit(power_used, power_cap)
+
+
+## Remove from power cap (e.g. when selling tower on power node).
+func remove_power_cap(amount: int) -> void:
+	power_cap = maxi(1, power_cap - amount)
+	power_changed.emit(power_used, power_cap)
+
+
 ## Add signal charge (from combat events).
 func add_signal_charge(amount: float) -> void:
 	signal_charge = clampf(signal_charge + amount, 0.0, signal_charge_max)

@@ -1,0 +1,89 @@
+{
+  "_comment": "Sector definitions for Signal Lost. 4 handcrafted macro-topologies with procedural node variation.",
+  "sectors": {
+    "relay_spine": {
+      "name": "Relay Spine",
+      "description": "A single long central corridor. Optimized for beam and chain tower interactions.",
+      "difficulty": 1,
+      "spawn_points": [[0, 4]],
+      "core_position": [14, 4],
+      "slots": [
+        [3, 1], [5, 1], [7, 1], [9, 1], [11, 1],
+        [2, 3], [4, 3], [6, 3], [8, 3], [10, 3], [12, 3],
+        [3, 5], [5, 5], [7, 5], [9, 5], [11, 5],
+        [2, 7], [4, 7], [6, 7], [8, 7], [10, 7], [12, 7]
+      ],
+      "blocked": [
+        [6, 0], [7, 0], [8, 0],
+        [6, 8], [7, 8], [8, 8]
+      ],
+      "power_nodes": [[6, 3], [8, 5]],
+      "hazard_nodes": [[7, 1]],
+      "relay_nodes": [[10, 3]]
+    },
+    "split_chamber": {
+      "name": "Split Chamber",
+      "description": "Two parallel paths force resource division. Defend both fronts or collapse.",
+      "difficulty": 2,
+      "spawn_points": [[0, 2], [0, 6]],
+      "core_position": [14, 4],
+      "slots": [
+        [3, 0], [5, 0], [7, 0], [9, 0], [11, 0],
+        [2, 2], [4, 2], [6, 2], [8, 2], [10, 2],
+        [3, 4], [5, 4], [7, 4], [9, 4], [11, 4],
+        [2, 6], [4, 6], [6, 6], [8, 6], [10, 6],
+        [3, 8], [5, 8], [7, 8], [9, 8], [11, 8]
+      ],
+      "blocked": [
+        [13, 0], [14, 0], [15, 0],
+        [13, 8], [14, 8], [15, 8],
+        [13, 2], [13, 6]
+      ],
+      "power_nodes": [[5, 4], [9, 4]],
+      "hazard_nodes": [[3, 0], [3, 8]],
+      "relay_nodes": [[7, 4]]
+    },
+    "orbital_ring": {
+      "name": "Orbital Ring",
+      "description": "A ring-shaped map with intersection points. Excellent for aura and control towers.",
+      "difficulty": 3,
+      "spawn_points": [[0, 4]],
+      "core_position": [8, 4],
+      "slots": [
+        [2, 1], [5, 1], [8, 1], [11, 1],
+        [1, 3], [3, 3], [5, 3], [7, 3], [9, 3], [11, 3], [13, 3],
+        [2, 5], [4, 5], [6, 5], [10, 5], [12, 5],
+        [1, 7], [3, 7], [5, 7], [7, 7], [9, 7], [11, 7], [13, 7]
+      ],
+      "blocked": [
+        [7, 0], [8, 0], [9, 0],
+        [0, 0], [0, 8], [15, 0], [15, 8],
+        [7, 8], [8, 8], [9, 8]
+      ],
+      "power_nodes": [[5, 3], [11, 3]],
+      "hazard_nodes": [[8, 1], [2, 5]],
+      "relay_nodes": [[7, 3], [9, 3]]
+    },
+    "broken_conduit": {
+      "name": "Broken Conduit",
+      "description": "Short aggressive routes with minimal build space. High pressure from wave 1.",
+      "difficulty": 4,
+      "spawn_points": [[0, 2], [0, 4], [0, 6]],
+      "core_position": [12, 4],
+      "slots": [
+        [3, 1], [5, 1], [7, 1], [9, 1],
+        [2, 3], [4, 3], [6, 3], [8, 3], [10, 3],
+        [3, 5], [5, 5], [7, 5], [9, 5],
+        [2, 7], [4, 7], [6, 7], [8, 7], [10, 7]
+      ],
+      "blocked": [
+        [11, 0], [12, 0], [13, 0], [14, 0], [15, 0],
+        [11, 8], [12, 8], [13, 8], [14, 8], [15, 8],
+        [14, 2], [14, 6], [15, 2], [15, 4], [15, 6]
+      ],
+      "power_nodes": [[6, 3]],
+      "hazard_nodes": [[5, 1], [5, 5], [7, 7]],
+      "relay_nodes": [[8, 3]]
+    }
+  }
+}

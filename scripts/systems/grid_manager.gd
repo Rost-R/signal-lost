@@ -4,17 +4,23 @@
 ##
 ## Purpose: Manages the tower defense grid — placement slots, tower positions,
 ## adjacency queries for synergies, and coordinate conversions.
+## Supports loading different sector layouts from sectors.json.
 ##
-## The grid is a 2D array where each cell can be:
-##   - EMPTY: walkable path for enemies
-##   - SLOT: available for tower placement
-##   - TOWER: occupied by a tower
-##   - BLOCKED: impassable terrain
-##   - CORE: relay core position
-##   - SPAWN: enemy spawn point
+## Cell types:
+##   EMPTY: walkable path for enemies
+##   SLOT: available for tower placement
+##   TOWER: occupied by a tower
+##   BLOCKED: impassable terrain
+##   CORE: relay core position
+##   SPAWN: enemy spawn point
+##
+## Special node overlays (on SLOT cells):
+##   POWER_NODE: +1 power cap when tower placed here
+##   HAZARD_NODE: enemies passing nearby get speed boost
+##   RELAY_NODE: towers here get +15% range
 ##
 ## @author Signal Lost Team
-## @version 0.1.0
+## @version 0.2.0
 class_name GridManager
 extends Node2D
 
@@ -41,6 +47,13 @@ enum CellType {
 	SPAWN
 }
 
+enum NodeType {
+	NONE,
+	POWER,
+	HAZARD,
+	RELAY
+}
+
 
 ## ============================================================================
 ## CONSTANTS
@@ -50,6 +63,11 @@ const CELL_SIZE := 64
 const GRID_WIDTH := 16
 const GRID_HEIGHT := 9
 
+## Special node colors
+const POWER_NODE_COLOR := Color(1, 0.72, 0, 0.2)  # Amber
+const HAZARD_NODE_COLOR := Color(1, 0.13, 0.27, 0.15)  # Red
+const RELAY_NODE_COLOR := Color(0, 0.78, 1, 0.15)  # Cyan
+
 
 ## ============================================================================
 ## STATE
@@ -57,6 +75,9 @@ const GRID_HEIGHT := 9
 
 ## Grid data: Vector2i -> CellType
 var _grid: Dictionary = {}
+
+## Special node overlays: Vector2i -> NodeType
+var _nodes: Dictionary = {}
 
 ## Tower references: Vector2i -> tower Node2D
 var _towers: Dictionary = {}
@@ -70,13 +91,24 @@ var spawn_points: Array[Vector2i] = []
 ## Core position
 var core_position: Vector2i = Vector2i(-1, -1)
 
+## Current sector info
+var current_sector_id: String = ""
+var current_sector_name: String = ""
+
+## Sector data loaded from JSON
+var _sector_data: Dictionary = {}
+
 
 ## ============================================================================
 ## LIFECYCLE
 ## ============================================================================
 
 func _ready() -> void:
-	_initialize_default_grid()
+	_load_sector_data()
+	## Default sector loaded by game_scene via load_sector()
+	## If no sector is loaded externally, fall back to relay_spine
+	if current_sector_id == "":
+		load_sector("relay_spine")
 
 
 func _unhandled_input(event: InputEvent) -> void:
@@ -91,6 +123,92 @@ func _unhandled_input(event: InputEvent) -> void:
 
 func _draw() -> void:
 	_draw_grid()
+
+
+## ============================================================================
+## SECTOR LOADING
+## ============================================================================
+
+## Load sector definitions from JSON.
+func _load_sector_data() -> void:
+	var file := FileAccess.open("res://data/sectors.json", FileAccess.READ)
+	if not file:
+		push_warning("GridManager: sectors.json not found, using default layout")
+		return
+	var json := JSON.new()
+	var err := json.parse(file.get_as_text())
+	file.close()
+	if err != OK:
+		push_warning("GridManager: Failed to parse sectors.json")
+		return
+	_sector_data = json.data.get("sectors", {})
+
+
+## Load a specific sector by ID. Clears any existing grid state.
+func load_sector(sector_id: String) -> void:
+	_clear_grid()
+
+	var sector: Dictionary = _sector_data.get(sector_id, {})
+	if sector.is_empty():
+		push_warning("GridManager: Sector '%s' not found, using relay_spine" % sector_id)
+		sector = _sector_data.get("relay_spine", {})
+		sector_id = "relay_spine"
+
+	current_sector_id = sector_id
+	current_sector_name = sector.get("name", sector_id)
+
+	## Fill grid with EMPTY
+	for x in GRID_WIDTH:
+		for y in GRID_HEIGHT:
+			_grid[Vector2i(x, y)] = CellType.EMPTY
+
+	## Place slots
+	for slot_arr in sector.get("slots", []):
+		set_cell(Vector2i(int(slot_arr[0]), int(slot_arr[1])), CellType.SLOT)
+
+	## Place blocked terrain
+	for blocked_arr in sector.get("blocked", []):
+		set_cell(Vector2i(int(blocked_arr[0]), int(blocked_arr[1])), CellType.BLOCKED)
+
+	## Set spawn points
+	for sp_arr in sector.get("spawn_points", []):
+		set_cell(Vector2i(int(sp_arr[0]), int(sp_arr[1])), CellType.SPAWN)
+
+	## Set core position
+	var core_arr: Array = sector.get("core_position", [14, 4])
+	set_cell(Vector2i(int(core_arr[0]), int(core_arr[1])), CellType.CORE)
+
+	## Set special nodes
+	for pn_arr in sector.get("power_nodes", []):
+		_nodes[Vector2i(int(pn_arr[0]), int(pn_arr[1]))] = NodeType.POWER
+	for hn_arr in sector.get("hazard_nodes", []):
+		_nodes[Vector2i(int(hn_arr[0]), int(hn_arr[1]))] = NodeType.HAZARD
+	for rn_arr in sector.get("relay_nodes", []):
+		_nodes[Vector2i(int(rn_arr[0]), int(rn_arr[1]))] = NodeType.RELAY
+
+	queue_redraw()
+
+
+## Clear all grid state for fresh sector load.
+func _clear_grid() -> void:
+	_grid.clear()
+	_nodes.clear()
+	_towers.clear()
+	spawn_points.clear()
+	core_position = Vector2i(-1, -1)
+
+
+## Get list of available sector IDs.
+func get_available_sectors() -> Array[String]:
+	var result: Array[String] = []
+	for key in _sector_data.keys():
+		result.append(key)
+	return result
+
+
+## Get sector info dictionary (name, description, difficulty).
+func get_sector_info(sector_id: String) -> Dictionary:
+	return _sector_data.get(sector_id, {})
 
 
 ## ============================================================================
@@ -124,6 +242,11 @@ func get_cell(grid_pos: Vector2i) -> CellType:
 	if not is_valid_cell(grid_pos):
 		return CellType.BLOCKED
 	return _grid.get(grid_pos, CellType.EMPTY)
+
+
+## Get special node type at position.
+func get_node_type(grid_pos: Vector2i) -> NodeType:
+	return _nodes.get(grid_pos, NodeType.NONE)
 
 
 ## Check if a tower can be placed at this position.
@@ -186,7 +309,6 @@ func count_adjacent_of_type(grid_pos: Vector2i, tower_id: String) -> int:
 		if tower.has_method("get_tower_id") and tower.get_tower_id() == tower_id:
 			count += 1
 	return count
-
 
 
 ## Get all placed tower positions.
@@ -256,6 +378,33 @@ func _draw_grid() -> void:
 				CellType.SPAWN:
 					draw_rect(rect, Color(1, 0.13, 0.27, 0.1))  # Red
 
+			## Draw special node overlays
+			var node_type := get_node_type(pos)
+			if node_type != NodeType.NONE:
+				var node_color: Color
+				var icon_char: String
+				match node_type:
+					NodeType.POWER:
+						node_color = POWER_NODE_COLOR
+						icon_char = "P"
+					NodeType.HAZARD:
+						node_color = HAZARD_NODE_COLOR
+						icon_char = "!"
+					NodeType.RELAY:
+						node_color = RELAY_NODE_COLOR
+						icon_char = "R"
+				## Node background tint
+				draw_rect(rect, node_color)
+				## Node border
+				var inset := Rect2(rect.position + Vector2(2, 2), rect.size - Vector2(4, 4))
+				draw_rect(inset, Color(node_color, 0.5), false, 1.0)
+				## Node icon letter
+				var font := ThemeDB.fallback_font
+				if font:
+					var cx := rect.position.x + CELL_SIZE * 0.5 - 4
+					var cy := rect.position.y + CELL_SIZE * 0.5 + 4
+					draw_string(font, Vector2(cx, cy), icon_char, HORIZONTAL_ALIGNMENT_LEFT, -1, 11, Color(node_color, 0.8))
+
 	## Draw grid lines
 	var grid_color := Color(0, 1, 0.53, 0.08)  # Very subtle green
 	for x in GRID_WIDTH + 1:
@@ -286,46 +435,3 @@ func _draw_grid() -> void:
 			_:
 				hover_color = Color(1, 0.13, 0.27, 0.15)  # Red — can't place
 		draw_rect(hover_rect, hover_color)
-
-
-## ============================================================================
-## DEFAULT MAP (MVP — fixed layout)
-## ============================================================================
-
-func _initialize_default_grid() -> void:
-	## Fill everything as EMPTY first
-	for x in GRID_WIDTH:
-		for y in GRID_HEIGHT:
-			_grid[Vector2i(x, y)] = CellType.EMPTY
-
-	## Define path (enemy walkway) — S-shaped path from left to right
-	## Path is EMPTY cells, tower slots are on the sides
-
-	## Place tower slots in a strategic pattern
-	var slot_positions: Array[Vector2i] = [
-		# Top row slots
-		Vector2i(3, 1), Vector2i(5, 1), Vector2i(7, 1), Vector2i(9, 1), Vector2i(11, 1),
-		# Upper-mid slots
-		Vector2i(2, 3), Vector2i(4, 3), Vector2i(6, 3), Vector2i(8, 3), Vector2i(10, 3), Vector2i(12, 3),
-		# Lower-mid slots
-		Vector2i(3, 5), Vector2i(5, 5), Vector2i(7, 5), Vector2i(9, 5), Vector2i(11, 5),
-		# Bottom row slots
-		Vector2i(2, 7), Vector2i(4, 7), Vector2i(6, 7), Vector2i(8, 7), Vector2i(10, 7), Vector2i(12, 7),
-	]
-
-	for slot_pos in slot_positions:
-		set_cell(slot_pos, CellType.SLOT)
-
-	## Set spawn point (left edge)
-	set_cell(Vector2i(0, 4), CellType.SPAWN)
-
-	## Set core position (right side)
-	set_cell(Vector2i(14, 4), CellType.CORE)
-
-	## Set some blocked terrain for visual variety
-	var blocked := [
-		Vector2i(6, 0), Vector2i(7, 0), Vector2i(8, 0),
-		Vector2i(6, 8), Vector2i(7, 8), Vector2i(8, 8),
-	]
-	for pos in blocked:
-		set_cell(pos, CellType.BLOCKED)

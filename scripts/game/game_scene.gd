@@ -48,6 +48,9 @@ const TOWER_POWER_COSTS := {
 ## STATE
 ## ============================================================================
 
+## Sector to load (set before scene enters tree, e.g. from hub)
+var sector_id: String = "relay_spine"
+
 var _grid: Node2D
 var _pathfinder: Node
 var _wave_spawner: Node
@@ -101,10 +104,11 @@ func _unhandled_input(event: InputEvent) -> void:
 ## ============================================================================
 
 func _setup_systems() -> void:
-	## Grid
+	## Grid — load sector before pathfinder setup
 	_grid = GridManagerScript.new()
 	_grid.name = "Grid"
 	add_child(_grid)
+	_grid.load_sector(sector_id)
 
 	## Pathfinder
 	_pathfinder = PathfinderScript.new()
@@ -118,7 +122,7 @@ func _setup_systems() -> void:
 	add_child(_wave_spawner)
 	_wave_spawner.setup(_pathfinder, _grid)
 
-	## Relay Core (visual)
+	## Relay Core (visual) — position based on sector's core location
 	_relay_core = RelayCoreScript.new()
 	_relay_core.name = "RelayCore"
 	_relay_core.position = _grid.grid_to_world(_grid.core_position)
@@ -395,6 +399,11 @@ func _place_tower(grid_pos: Vector2i, tower_id: String) -> void:
 		return
 
 	GameManager.use_power(p_cost)
+
+	## Power node bonus: placing on a power node grants +1 power cap
+	if _grid.get_node_type(grid_pos) == GridManagerScript.NodeType.POWER:
+		GameManager.add_power_cap(1)
+
 	_recalculate_synergies(grid_pos)
 
 
@@ -407,6 +416,11 @@ func _sell_tower(grid_pos: Vector2i, tower: Node2D) -> void:
 	var p_cost: int = tower.power_cost if "power_cost" in tower else 1
 	GameManager.add_scrap(refund)
 	GameManager.release_power(p_cost)
+
+	## Reverse power node bonus when selling from a power node
+	if _grid.get_node_type(grid_pos) == GridManagerScript.NodeType.POWER:
+		GameManager.remove_power_cap(1)
+
 	var adj_positions: Array[Vector2i] = _grid.get_adjacent_towers(grid_pos)
 	_grid.remove_tower(grid_pos)
 	tower.queue_free()
@@ -438,6 +452,10 @@ func _apply_synergies_for(grid_pos: Vector2i) -> void:
 	var damage_mult: float = 1.0 + _reward_system.run_damage_bonus
 	var speed_mult: float = 1.0 + _reward_system.run_speed_bonus
 	var range_mult: float = 1.0 + _reward_system.run_range_bonus
+
+	## Relay node bonus: towers on relay nodes get +15% range
+	if _grid.get_node_type(grid_pos) == GridManagerScript.NodeType.RELAY:
+		range_mult += 0.15
 
 	var adjacent_towers: Array[Node2D] = _grid.get_adjacent_tower_nodes(grid_pos)
 	var tower_id: String = tower.get_tower_id() if tower.has_method("get_tower_id") else ""
