@@ -54,6 +54,9 @@ var transmissions_seen: Array = []
 ## Sector played this run.
 var sector_id: String = "relay_spine"
 
+## Difficulty mode for this run.
+var difficulty_id: String = "standard"
+
 
 ## ============================================================================
 ## PUBLIC API

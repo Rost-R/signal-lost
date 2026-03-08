@@ -61,6 +61,19 @@ var total_wins: int = 0
 ## Best wave reached across all runs.
 var best_wave: int = 0
 
+## Endings unlocked across runs (for synthesis ending check).
+var endings_unlocked: Array[String] = []
+
+## Settings
+var settings: Dictionary = {
+	"master_volume": 1.0,
+	"music_volume": 0.8,
+	"sfx_volume": 1.0,
+	"crt_enabled": true,
+	"screen_shake": true,
+	"fullscreen": false,
+}
+
 
 ## ============================================================================
 ## LIFECYCLE
@@ -81,9 +94,18 @@ func initialize_fresh() -> void:
 	unlocked_transmissions.clear()
 	purchased_upgrades.clear()
 	discovered_synergies.clear()
+	endings_unlocked.clear()
 	total_runs = 0
 	total_wins = 0
 	best_wave = 0
+	settings = {
+		"master_volume": 1.0,
+		"music_volume": 0.8,
+		"sfx_volume": 1.0,
+		"crt_enabled": true,
+		"screen_shake": true,
+		"fullscreen": false,
+	}
 	save_to_disk()
 
 
@@ -127,6 +149,18 @@ func discover_synergy(synergy_id: String) -> void:
 		save_to_disk()
 
 
+## Unlock an ending (for synthesis ending requirement).
+func unlock_ending(ending_id: String) -> void:
+	if ending_id not in endings_unlocked:
+		endings_unlocked.append(ending_id)
+		save_to_disk()
+
+
+## Check if an ending has been unlocked.
+func is_ending_unlocked(ending_id: String) -> bool:
+	return ending_id in endings_unlocked
+
+
 ## ============================================================================
 ## SAVE / LOAD
 ## ============================================================================
@@ -141,6 +175,8 @@ func save_to_disk() -> void:
 		"total_runs": total_runs,
 		"total_wins": total_wins,
 		"best_wave": best_wave,
+		"endings_unlocked": endings_unlocked,
+		"settings": settings,
 	}
 	var file := FileAccess.open(SAVE_PATH, FileAccess.WRITE)
 	if file:
@@ -176,3 +212,7 @@ func _load_from_disk() -> void:
 	total_runs = data.get("total_runs", 0)
 	total_wins = data.get("total_wins", 0)
 	best_wave = data.get("best_wave", 0)
+	endings_unlocked = Array(data.get("endings_unlocked", []), TYPE_STRING, "", null)
+	var saved_settings: Dictionary = data.get("settings", {})
+	for key in saved_settings.keys():
+		settings[key] = saved_settings[key]

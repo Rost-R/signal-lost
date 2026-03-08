@@ -314,6 +314,11 @@ func _on_game_over(victory: bool) -> void:
 	for tx_id in RunManager.transmissions_seen:
 		MetaManager.unlock_transmission(tx_id)
 
+	## Unlock the ending achieved (for synthesis ending requirement)
+	var ending_id: String = ending.get("id", "")
+	if ending_id != "":
+		MetaManager.unlock_ending(ending_id)
+
 	## Short delay before showing game over panel with ending
 	get_tree().create_timer(1.5).timeout.connect(func():
 		_game_over_panel.show_results(victory, ending)

@@ -214,21 +214,39 @@ static func get_elite_color(elite_type: EliteType) -> Color:
 ## PUBLIC API — Run Modifier Effects on Enemies
 ## ============================================================================
 
-## Apply run modifier effects to an enemy at spawn time.
+## Apply run modifier effects and difficulty scaling to an enemy at spawn time.
 func apply_run_effects_to_enemy(enemy: Node2D) -> void:
-	## Enemy HP multiplier
-	var hp_mult: float = get_effect("enemy_hp_multiply", 1.0)
+	## Difficulty scaling
+	var diff_hp := 1.0
+	var diff_speed := 1.0
+	var diff_reward := 1.0
+	match RunManager.difficulty_id:
+		"hard_signal":
+			diff_hp = 1.3
+			diff_speed = 1.2
+			diff_reward = 0.8
+		"anomaly":
+			## Randomized per-wave multipliers (seeded so consistent within wave)
+			var wave_seed := RunManager.run_seed + GameManager.current_wave * 7
+			var rng := RandomNumberGenerator.new()
+			rng.seed = wave_seed
+			diff_hp = rng.randf_range(0.8, 1.6)
+			diff_speed = rng.randf_range(0.7, 1.5)
+			diff_reward = rng.randf_range(0.6, 1.4)
+
+	## Enemy HP multiplier (difficulty + modifier)
+	var hp_mult: float = get_effect("enemy_hp_multiply", 1.0) * diff_hp
 	if hp_mult != 1.0:
 		enemy.current_hp *= hp_mult
 		enemy.max_hp *= hp_mult
 
 	## Enemy speed multiplier
-	var speed_mult: float = get_effect("enemy_speed_multiply", 1.0)
+	var speed_mult: float = get_effect("enemy_speed_multiply", 1.0) * diff_speed
 	if speed_mult != 1.0:
 		enemy.base_speed *= speed_mult
 
 	## Enemy reward multiplier
-	var reward_mult: float = get_effect("enemy_reward_multiply", 1.0)
+	var reward_mult: float = get_effect("enemy_reward_multiply", 1.0) * diff_reward
 	if reward_mult != 1.0:
 		enemy.reward = int(enemy.reward * reward_mult)
 

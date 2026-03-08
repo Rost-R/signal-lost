@@ -190,20 +190,21 @@ func _check_transmission_requirements(ending_id: String) -> bool:
 	return true
 
 
-## Check synthesis ending (all 3 other endings seen).
+## Check synthesis ending (all 3 other endings seen across runs via MetaManager).
 func _check_synthesis_ending() -> bool:
 	var synthesis: Dictionary = _endings_data.get("synthesis", {})
 	var required: Array = synthesis.get("required_endings", [])
 	if required.is_empty():
 		return false
 	for req_end in required:
-		if req_end not in _endings_unlocked:
+		if not MetaManager.is_ending_unlocked(req_end):
 			return false
 	return true
 
 
-## Record an ending as seen.
+## Record an ending as seen (delegates to MetaManager for persistence).
 func _record_ending(ending_id: String) -> void:
+	MetaManager.unlock_ending(ending_id)
 	if ending_id not in _endings_unlocked:
 		_endings_unlocked.append(ending_id)
 

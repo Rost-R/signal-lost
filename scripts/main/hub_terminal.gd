@@ -117,7 +117,7 @@ func _unhandled_input(event: InputEvent) -> void:
 		Screen.UPGRADES: _input_upgrades(event)
 		Screen.DOSSIERS: _input_sub(event)
 		Screen.CONTRACTS: _input_sub(event)
-		Screen.SETTINGS: _input_sub(event)
+		Screen.SETTINGS: _input_settings(event)
 		Screen.STATS: _input_sub(event)
 
 
@@ -281,6 +281,10 @@ func _launch_run() -> void:
 	## Store selected sector in RunManager
 	var sector: String = _sector_list[_selected_sector] if _selected_sector < _sector_list.size() else "relay_spine"
 	RunManager.sector_id = sector
+
+	## Store selected difficulty
+	var diff: Dictionary = DIFFICULTY_MODES[_selected_difficulty] if _selected_difficulty < DIFFICULTY_MODES.size() else DIFFICULTY_MODES[0]
+	RunManager.difficulty_id = diff["id"]
 
 	## Load game scene
 	get_tree().change_scene_to_file("res://scenes/game/game.tscn")
@@ -522,6 +526,15 @@ func _draw_sub_header(vp: Vector2, font: Font, title: String) -> void:
 func _input_sub(event: InputEvent) -> void:
 	if event.keycode == KEY_ESCAPE:
 		_current_screen = Screen.MAIN
+
+
+func _input_settings(event: InputEvent) -> void:
+	match event.keycode:
+		KEY_ESCAPE:
+			_current_screen = Screen.MAIN
+		KEY_D:
+			## Delete save data — reset MetaManager
+			MetaManager.initialize_fresh()
 
 
 func _load_sector_info() -> void:
