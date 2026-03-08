@@ -256,6 +256,9 @@ func _draw_phase_indicator(vp_size: Vector2) -> void:
 		GameManager.GamePhase.BETWEEN_WAVES:
 			phase_text = "[ WAVE CLEAR — BUILD ]"
 			phase_color = ACCENT_COLOR
+		GameManager.GamePhase.REWARD_CHOICE:
+			phase_text = "[ CHOOSE REWARD ]"
+			phase_color = Color(1, 0.72, 0)  # Amber
 		GameManager.GamePhase.BOSS:
 			phase_text = "[ BOSS WAVE ]"
 			phase_color = Color(0.67, 0.27, 1)

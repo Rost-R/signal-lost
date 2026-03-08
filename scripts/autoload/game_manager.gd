@@ -33,6 +33,7 @@ enum GamePhase {
 	BUILD,
 	WAVE,
 	BETWEEN_WAVES,
+	REWARD_CHOICE,
 	BOSS,
 	GAME_OVER
 }
@@ -79,6 +80,9 @@ var current_phase: GamePhase = GamePhase.BUILD
 var is_running: bool = false
 var default_target_priority: TargetPriority = TargetPriority.FIRST
 
+## Tracks core HP at wave start to detect flawless waves (no damage taken).
+var core_hp_before_wave: int = STARTING_CORE_HP
+
 
 ## ============================================================================
 ## LIFECYCLE
@@ -101,6 +105,7 @@ func reset() -> void:
 	current_wave = 0
 	current_phase = GamePhase.BUILD
 	is_running = false
+	core_hp_before_wave = STARTING_CORE_HP
 
 
 ## Start a new run with optional modifier adjustments.
@@ -117,17 +122,25 @@ func start_run(starting_scrap_override: int = -1, starting_hp_override: int = -1
 ## Begin the next wave.
 func start_wave() -> void:
 	current_wave += 1
+	core_hp_before_wave = core_hp
 	_set_phase(GamePhase.WAVE)
 	wave_started.emit(current_wave)
 
 
 ## Called when all enemies in the current wave are defeated.
+## Non-boss waves transition to REWARD_CHOICE; boss wave = victory.
 func complete_wave() -> void:
+	RunManager.waves_survived = current_wave
 	wave_completed.emit(current_wave)
 	if current_wave >= MAX_WAVES:
 		_trigger_game_over(true)
 	else:
-		_set_phase(GamePhase.BETWEEN_WAVES)
+		_set_phase(GamePhase.REWARD_CHOICE)
+
+
+## Called after player picks a reward. Transition to build phase.
+func finish_reward_choice() -> void:
+	_set_phase(GamePhase.BETWEEN_WAVES)
 
 
 ## Apply damage to the relay core.

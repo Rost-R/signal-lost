@@ -3,10 +3,10 @@
 ## ============================================================================
 ##
 ## Purpose: Main game scene. Orchestrates all systems: grid, towers,
-## enemies, waves, pathfinding, and HUD.
+## enemies, waves, pathfinding, HUD, rewards, and game over flow.
 ##
 ## @author Signal Lost Team
-## @version 0.2.0
+## @version 0.3.0
 extends Node2D
 
 ## Preload all scripts to avoid class_name resolution issues
@@ -14,7 +14,10 @@ const GridManagerScript = preload("res://scripts/systems/grid_manager.gd")
 const PathfinderScript = preload("res://scripts/systems/pathfinder.gd")
 const WaveSpawnerScript = preload("res://scripts/systems/wave_spawner.gd")
 const RelayCoreScript = preload("res://scripts/systems/relay_core.gd")
+const RewardSystemScript = preload("res://scripts/systems/reward_system.gd")
 const GameHUDScript = preload("res://scripts/ui/game_hud.gd")
+const RewardPanelScript = preload("res://scripts/ui/reward_panel.gd")
+const GameOverPanelScript = preload("res://scripts/ui/game_over_panel.gd")
 const PulseEmitterScript = preload("res://scripts/towers/pulse_emitter.gd")
 const ArcRelayScript = preload("res://scripts/towers/arc_relay.gd")
 const CryoNodeScript = preload("res://scripts/towers/cryo_node.gd")
@@ -47,6 +50,9 @@ var _pathfinder: Node
 var _wave_spawner: Node
 var _relay_core: Node2D
 var _hud: CanvasLayer
+var _reward_system: Node
+var _reward_panel: CanvasLayer
+var _game_over_panel: CanvasLayer
 
 ## Tower creation
 var _tower_scenes: Dictionary = {}
@@ -71,6 +77,12 @@ func _exit_tree() -> void:
 
 
 func _unhandled_input(event: InputEvent) -> void:
+	## Block game input during reward choice and game over
+	if GameManager.current_phase == GameManager.GamePhase.REWARD_CHOICE:
+		return
+	if GameManager.current_phase == GameManager.GamePhase.GAME_OVER:
+		return
+
 	if event is InputEventMouseButton and event.pressed:
 		if event.button_index == MOUSE_BUTTON_LEFT:
 			_handle_click(get_global_mouse_position())
@@ -106,10 +118,25 @@ func _setup_systems() -> void:
 	_relay_core.position = _grid.grid_to_world(_grid.core_position)
 	add_child(_relay_core)
 
+	## Reward System
+	_reward_system = RewardSystemScript.new()
+	_reward_system.name = "RewardSystem"
+	add_child(_reward_system)
+
 	## HUD
 	_hud = GameHUDScript.new()
 	_hud.name = "HUD"
 	add_child(_hud)
+
+	## Reward Panel (overlay, on top of HUD)
+	_reward_panel = RewardPanelScript.new()
+	_reward_panel.name = "RewardPanel"
+	add_child(_reward_panel)
+
+	## Game Over Panel (overlay, on top of everything)
+	_game_over_panel = GameOverPanelScript.new()
+	_game_over_panel.name = "GameOverPanel"
+	add_child(_game_over_panel)
 
 	## Load tower scenes
 	_tower_scenes["pulse_emitter"] = _create_tower_scene(PulseEmitterScript)
@@ -127,6 +154,9 @@ func _connect_signals() -> void:
 	_wave_spawner.wave_enemies_cleared.connect(_on_wave_cleared)
 	_wave_spawner.enemy_spawned.connect(_on_enemy_spawned)
 	GameManager.game_over.connect(_on_game_over)
+	_reward_panel.reward_selected.connect(_on_reward_selected)
+	_game_over_panel.restart_requested.connect(_on_restart_requested)
+	_game_over_panel.main_menu_requested.connect(_on_main_menu_requested)
 
 
 ## ============================================================================
@@ -134,6 +164,8 @@ func _connect_signals() -> void:
 ## ============================================================================
 
 func _start_game() -> void:
+	_reward_system.reset()
+	RunManager.start_new_run()
 	GameManager.start_run()
 
 
@@ -147,22 +179,43 @@ func _on_start_wave() -> void:
 
 
 func _on_wave_cleared() -> void:
+	## Award wave reward scrap from waves.json
 	GameManager.complete_wave()
+
+	## If game is over (victory on wave 10), skip reward choice
+	if GameManager.current_phase == GameManager.GamePhase.GAME_OVER:
+		return
+
+	## Detect flawless wave (no core damage taken this wave)
+	var was_flawless: bool = GameManager.core_hp >= GameManager.core_hp_before_wave
+
+	## Generate and show 3 reward choices
+	var choices: Array = _reward_system.generate_choices(
+		GameManager.current_wave, was_flawless
+	)
+	_reward_panel.show_choices(choices)
+
+
+func _on_reward_selected(reward: Dictionary) -> void:
+	_reward_system.apply_reward(reward)
+	GameManager.finish_reward_choice()
 
 
 func _on_game_over(victory: bool) -> void:
-	if victory:
-		print("=== VICTORY! All waves cleared! ===")
-	else:
-		print("=== GAME OVER — Core destroyed ===")
-	print("Waves survived: %d" % GameManager.current_wave)
-	print("Scrap earned: %d" % RunManager.scrap_earned)
-	print("Enemies killed: %d" % RunManager.enemies_killed)
-
-	get_tree().create_timer(3.0).timeout.connect(func():
-		GameManager.reset()
-		get_tree().reload_current_scene()
+	## Short delay before showing game over panel
+	get_tree().create_timer(1.5).timeout.connect(func():
+		_game_over_panel.show_results(victory)
 	)
+
+
+func _on_restart_requested() -> void:
+	GameManager.reset()
+	get_tree().reload_current_scene()
+
+
+func _on_main_menu_requested() -> void:
+	GameManager.reset()
+	get_tree().change_scene_to_file("res://scenes/main/main_menu.tscn")
 
 
 ## ============================================================================
@@ -170,7 +223,7 @@ func _on_game_over(victory: bool) -> void:
 ## ============================================================================
 
 func _on_enemy_spawned(_enemy: Node2D) -> void:
-	pass  # Future: connect signals for reward choices, transmissions, etc.
+	pass  # Future: connect signals for transmissions, etc.
 
 
 ## ============================================================================
@@ -234,7 +287,8 @@ func _handle_right_click(world_pos: Vector2) -> void:
 
 
 func _place_tower(grid_pos: Vector2i, tower_id: String) -> void:
-	var cost: int = _get_tower_cost(tower_id)
+	var base_cost: int = _get_tower_cost(tower_id)
+	var cost: int = _reward_system.get_discounted_cost(base_cost)
 	var p_cost: int = TOWER_POWER_COSTS.get(tower_id, 1)
 
 	## Check scrap
@@ -266,6 +320,10 @@ func _place_tower(grid_pos: Vector2i, tower_id: String) -> void:
 
 func _sell_tower(grid_pos: Vector2i, tower: Node2D) -> void:
 	var refund: int = tower.get_sell_value()
+	## Apply improved sell refund if reward was chosen
+	if _reward_system.run_sell_refund > 0.70:
+		var base_invested: int = tower.get_total_invested() if tower.has_method("get_total_invested") else int(refund / 0.70)
+		refund = _reward_system.get_sell_value(base_invested)
 	var p_cost: int = tower.power_cost if "power_cost" in tower else 1
 	GameManager.add_scrap(refund)
 	GameManager.release_power(p_cost)
@@ -296,9 +354,10 @@ func _apply_synergies_for(grid_pos: Vector2i) -> void:
 	if not tower or not tower.has_method("apply_synergy"):
 		return
 
-	var damage_mult: float = 1.0
-	var speed_mult: float = 1.0
-	var range_mult: float = 1.0
+	## Start with run-wide bonuses from reward choices
+	var damage_mult: float = 1.0 + _reward_system.run_damage_bonus
+	var speed_mult: float = 1.0 + _reward_system.run_speed_bonus
+	var range_mult: float = 1.0 + _reward_system.run_range_bonus
 
 	var adjacent_towers: Array[Node2D] = _grid.get_adjacent_tower_nodes(grid_pos)
 	var tower_id: String = tower.get_tower_id() if tower.has_method("get_tower_id") else ""
@@ -307,9 +366,6 @@ func _apply_synergies_for(grid_pos: Vector2i) -> void:
 		if not adj.has_method("get_tower_id"):
 			continue
 		var adj_id: String = adj.get_tower_id()
-
-		## Salvage Matrix boosts adjacent towers' scrap generation indirectly
-		## (handled within salvage_matrix.gd itself)
 
 		## Scrambler Dish + Pulse synergy: Pulse gets +20% damage near Scrambler
 		if adj_id == "scrambler_dish" and tower_id == "pulse_emitter":

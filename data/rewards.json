@@ -1,0 +1,116 @@
+{
+  "_comment": "Between-wave reward pool. Player picks 1 of 3 after each wave. GDD v2 aligned.",
+  "reward_pool": [
+    {
+      "id": "scrap_bonus_small",
+      "type": "scrap",
+      "name": "Scrap Cache",
+      "description": "+30 Scrap",
+      "icon": "scrap",
+      "effect": { "scrap": 30 },
+      "weight": 10,
+      "min_wave": 1
+    },
+    {
+      "id": "scrap_bonus_large",
+      "type": "scrap",
+      "name": "Scrap Haul",
+      "description": "+60 Scrap",
+      "icon": "scrap",
+      "effect": { "scrap": 60 },
+      "weight": 6,
+      "min_wave": 4
+    },
+    {
+      "id": "core_repair_small",
+      "type": "heal",
+      "name": "Core Patch",
+      "description": "+3 Core HP",
+      "icon": "heal",
+      "effect": { "heal": 3 },
+      "weight": 8,
+      "min_wave": 1
+    },
+    {
+      "id": "core_repair_large",
+      "type": "heal",
+      "name": "Core Overhaul",
+      "description": "+6 Core HP",
+      "icon": "heal",
+      "effect": { "heal": 6 },
+      "weight": 4,
+      "min_wave": 5
+    },
+    {
+      "id": "power_boost",
+      "type": "power",
+      "name": "Power Surge",
+      "description": "+1 Power Cap",
+      "icon": "power",
+      "effect": { "power_cap": 1 },
+      "weight": 5,
+      "min_wave": 2
+    },
+    {
+      "id": "damage_boost",
+      "type": "passive",
+      "name": "Overclocked Targeting",
+      "description": "+10% Tower Damage (run)",
+      "icon": "damage",
+      "effect": { "damage_mult": 0.10 },
+      "weight": 6,
+      "min_wave": 3
+    },
+    {
+      "id": "speed_boost",
+      "type": "passive",
+      "name": "Rapid Cycling",
+      "description": "+15% Attack Speed (run)",
+      "icon": "speed",
+      "effect": { "speed_mult": 0.15 },
+      "weight": 6,
+      "min_wave": 3
+    },
+    {
+      "id": "range_boost",
+      "type": "passive",
+      "name": "Signal Amplifier",
+      "description": "+10% Tower Range (run)",
+      "icon": "range",
+      "effect": { "range_mult": 0.10 },
+      "weight": 6,
+      "min_wave": 2
+    },
+    {
+      "id": "tower_discount",
+      "type": "economy",
+      "name": "Bulk Discount",
+      "description": "-15% Tower Costs (run)",
+      "icon": "economy",
+      "effect": { "cost_reduction": 0.15 },
+      "weight": 5,
+      "min_wave": 2
+    },
+    {
+      "id": "salvage_efficiency",
+      "type": "economy",
+      "name": "Improved Salvage",
+      "description": "Sell refund 85% (was 70%)",
+      "icon": "economy",
+      "effect": { "sell_refund": 0.85 },
+      "weight": 4,
+      "min_wave": 3
+    },
+    {
+      "id": "flawless_scrap",
+      "type": "scrap",
+      "name": "Flawless Bonus",
+      "description": "+50 Scrap (flawless wave only)",
+      "icon": "scrap",
+      "effect": { "scrap": 50 },
+      "weight": 0,
+      "min_wave": 1,
+      "_comment": "Special: only offered when wave was flawless (no core damage)"
+    }
+  ]
+}
