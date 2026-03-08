@@ -63,6 +63,10 @@ var _synergy_damage_mult: float = 1.0
 var _synergy_speed_mult: float = 1.0
 var _synergy_range_mult: float = 1.0
 
+## Sprite rendering (null = use _draw fallback)
+var _sprite: Sprite2D = null
+var _use_sprite: bool = false
+
 ## Visual
 var _range_visible: bool = false
 
@@ -73,6 +77,7 @@ var _range_visible: bool = false
 
 func _ready() -> void:
 	recalculate_stats()
+	_try_load_sprite()
 
 
 func _physics_process(delta: float) -> void:
@@ -160,6 +165,7 @@ func upgrade() -> bool:
 		return false
 	level += 1
 	recalculate_stats()
+	_refresh_sprite()
 	tower_upgraded.emit(level)
 	return true
 
@@ -174,6 +180,7 @@ func upgrade_with_branch(branch_id: String) -> bool:
 	upgrade_branch = branch_id
 	level = 2
 	recalculate_stats()
+	_refresh_sprite()
 	tower_upgraded.emit(level)
 	return true
 
@@ -347,7 +354,15 @@ func _get_branch_upgrade_cost(_branch_id: String, _target_level: int) -> int:
 ## ============================================================================
 
 func _draw_tower() -> void:
-	## Base — hexagonal shape
+	## If using sprite, only draw level indicator dots
+	if _use_sprite:
+		var size := GridManagerScript.CELL_SIZE * 0.35
+		for i in level:
+			var dot_x := (i - (level - 1) * 0.5) * 6.0
+			draw_circle(Vector2(dot_x, size + 6), 2.0, tower_color)
+		return
+
+	## Base — hexagonal shape (placeholder fallback)
 	var size := GridManagerScript.CELL_SIZE * 0.35
 	var points := PackedVector2Array()
 	for i in 6:
@@ -365,3 +380,34 @@ func _draw_tower() -> void:
 func _draw_range() -> void:
 	var range_px := effective_range * GridManagerScript.CELL_SIZE
 	draw_arc(Vector2.ZERO, range_px, 0, TAU, 64, Color(tower_color, 0.15), 1.0)
+
+
+## Try to load a sprite texture for this tower. If found, creates a
+## Sprite2D child and sets _use_sprite = true so _draw_tower() skips
+## the placeholder geometry.
+func _try_load_sprite() -> void:
+	var path: String
+	if upgrade_branch != "" and level >= 2:
+		path = "res://assets/sprites/towers/%s_lv%d_%s.png" % [tower_id, level, upgrade_branch]
+	else:
+		path = "res://assets/sprites/towers/%s_lv%d.png" % [tower_id, level]
+
+	if not ResourceLoader.exists(path):
+		return
+
+	var texture: Texture2D = load(path) as Texture2D
+	if not texture:
+		return
+
+	if _sprite:
+		_sprite.texture = texture
+	else:
+		_sprite = Sprite2D.new()
+		_sprite.texture = texture
+		add_child(_sprite)
+	_use_sprite = true
+
+
+## Call after upgrade to refresh sprite for new level/branch.
+func _refresh_sprite() -> void:
+	_try_load_sprite()

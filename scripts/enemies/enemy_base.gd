@@ -65,6 +65,10 @@ var _hit_flash_timer: float = 0.0
 const HIT_FLASH_DURATION := 0.08
 var _size_scale: float = 0.6
 
+## Sprite rendering (null = use _draw fallback)
+var _sprite: Sprite2D = null
+var _use_sprite: bool = false
+
 
 ## ============================================================================
 ## LIFECYCLE
@@ -151,6 +155,7 @@ func setup(path: PackedVector2Array, wave_mult: float = 1.0) -> void:
 	if _path.size() > 0:
 		position = _path[0]
 	add_to_group("enemies")
+	_try_load_sprite()
 
 
 ## Apply damage, accounting for armor (reduced by debuff), vulnerability, and shields.
@@ -270,6 +275,25 @@ func _calculate_progress() -> float:
 
 func _draw_enemy() -> void:
 	var size := GridManagerScript.CELL_SIZE * _size_scale * 0.4
+
+	if _use_sprite:
+		## Sprite mode: apply visual effects to sprite, draw HP/shield bars only
+		if _hit_flash_timer > 0:
+			_sprite.modulate = Color.WHITE
+		elif _is_frozen:
+			_sprite.modulate = Color(0.53, 0.87, 1)
+			for i in 4:
+				var angle := deg_to_rad(90 * i + 45)
+				var p := Vector2(cos(angle), sin(angle)) * size * 1.3
+				draw_line(Vector2.ZERO, p, Color(0.53, 0.87, 1, 0.6), 1.0)
+		else:
+			_sprite.modulate = Color.WHITE
+		_draw_hp_bar(size)
+		if max_shield > 0:
+			_draw_shield_bar(size)
+		return
+
+	## Placeholder fallback — diamond shape
 	var color := enemy_color
 
 	## Hit flash — white
@@ -325,3 +349,21 @@ func _draw_shield_bar(size: float) -> void:
 	var shield_ratio := clampf(shield_hp / max_shield, 0.0, 1.0)
 
 	draw_rect(Rect2(-bar_width * 0.5, bar_y, bar_width * shield_ratio, bar_height), Color(0.3, 0.5, 1, 0.8))
+
+
+## Try to load a sprite texture for this enemy. If found, creates a
+## Sprite2D child and sets _use_sprite = true so _draw_enemy() skips
+## the placeholder geometry.
+func _try_load_sprite() -> void:
+	var path := "res://assets/sprites/enemies/%s.png" % enemy_id
+	if not ResourceLoader.exists(path):
+		return
+
+	var texture: Texture2D = load(path) as Texture2D
+	if not texture:
+		return
+
+	_sprite = Sprite2D.new()
+	_sprite.texture = texture
+	add_child(_sprite)
+	_use_sprite = true
