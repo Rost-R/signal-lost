@@ -269,9 +269,12 @@ func _on_reward_selected(reward: Dictionary) -> void:
 
 
 func _on_game_over(victory: bool) -> void:
-	## Short delay before showing game over panel
+	## Determine ending based on truth axes
+	var ending: Dictionary = _transmission_manager.determine_ending(victory)
+
+	## Short delay before showing game over panel with ending
 	get_tree().create_timer(1.5).timeout.connect(func():
-		_game_over_panel.show_results(victory)
+		_game_over_panel.show_results(victory, ending)
 	)
 
 

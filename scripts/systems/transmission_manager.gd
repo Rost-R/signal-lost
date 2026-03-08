@@ -35,6 +35,22 @@ var _unlocked_pool: Array[String] = []  ## tx_ids available to be offered
 
 ## Per-session (meta) state — persisted via MetaManager
 var _ever_unlocked: Array[String] = []  ## tx_ids unlocked across all runs
+var _endings_unlocked: Array[String] = []  ## ending IDs seen across all runs
+
+## Truth axes — accumulated from transmission ending_tracks this run
+var truth_axes: Dictionary = {
+	"crew_fault": 0.0,
+	"core_fault": 0.0,
+	"signal_truth": 0.0,
+}
+
+## Mapping from ending_track to truth axis
+const TRACK_TO_AXIS := {
+	"resistance": "crew_fault",
+	"corruption": "core_fault",
+	"signal_origin": "signal_truth",
+	"transcendence": "signal_truth",
+}
 
 ## Story window frequency: offer transmissions every N waves
 const STORY_WINDOW_INTERVAL := 2  ## Waves 2, 4, 6, 8
@@ -55,6 +71,7 @@ func _ready() -> void:
 ## Reset for a new run.
 func reset() -> void:
 	_seen_this_run.clear()
+	truth_axes = { "crew_fault": 0.0, "core_fault": 0.0, "signal_truth": 0.0 }
 	_build_unlock_pool()
 
 
@@ -95,27 +112,124 @@ func select_transmission(tx_id: String) -> void:
 		_ever_unlocked.append(tx_id)
 	RunManager.transmissions_seen.append(tx_id)
 
+	## Accumulate truth axes based on ending_track
+	var tx: Dictionary = _transmission_data.get(tx_id, {})
+	var track: String = tx.get("ending_track", "none")
+	if track in TRACK_TO_AXIS:
+		var axis: String = TRACK_TO_AXIS[track]
+		truth_axes[axis] += 1.0
+
 
 ## Get all transmissions seen this run.
 func get_seen_this_run() -> Array[String]:
 	return _seen_this_run
 
 
-## Check if an ending's requirements are met.
-func check_ending_conditions() -> String:
-	for ending_id in _endings_data:
-		var ending: Dictionary = _endings_data[ending_id]
-		var required: Array = ending.get("required_transmissions", [])
-		if required.is_empty():
-			continue
-		var all_met := true
-		for req_tx in required:
-			if req_tx not in _ever_unlocked:
-				all_met = false
-				break
-		if all_met:
-			return ending_id
-	return ""
+## Determine which ending the player gets based on truth axes and conditions.
+## Called at end of run. Returns ending dictionary with id, name, description.
+func determine_ending(victory: bool) -> Dictionary:
+	## Check synthesis first (requires all 3 other endings across runs)
+	if _check_synthesis_ending():
+		var ending: Dictionary = _endings_data.get("synthesis", {}).duplicate()
+		ending["id"] = "synthesis"
+		_record_ending("synthesis")
+		return ending
+
+	## Signal Origin: all signal transmissions unlocked across runs
+	if _check_transmission_requirements("signal_origin"):
+		var ending: Dictionary = _endings_data.get("signal_origin", {}).duplicate()
+		ending["id"] = "signal_origin"
+		_record_ending("signal_origin")
+		return ending
+
+	## Determine by dominant truth axis this run
+	var dominant := _get_dominant_axis()
+
+	## Transcendence: signal_truth dominant AND player lost (core destroyed)
+	if dominant == "signal_truth" and not victory:
+		var ending: Dictionary = _endings_data.get("transcendence", {}).duplicate()
+		ending["id"] = "transcendence"
+		_record_ending("transcendence")
+		return ending
+
+	## Resistance: crew_fault dominant OR victory with core_fault
+	if dominant == "crew_fault" or (victory and dominant == "core_fault"):
+		var ending: Dictionary = _endings_data.get("resistance", {}).duplicate()
+		ending["id"] = "resistance"
+		_record_ending("resistance")
+		return ending
+
+	## Default: resistance for victory, transcendence for loss
+	var default_id := "resistance" if victory else "transcendence"
+	var ending: Dictionary = _endings_data.get(default_id, {}).duplicate()
+	ending["id"] = default_id
+	_record_ending(default_id)
+	return ending
+
+
+## Get the dominant truth axis for this run.
+func _get_dominant_axis() -> String:
+	var max_val := 0.0
+	var dominant := "crew_fault"
+	for axis in truth_axes:
+		if truth_axes[axis] > max_val:
+			max_val = truth_axes[axis]
+			dominant = axis
+	return dominant
+
+
+## Check if all required transmissions for an ending are unlocked.
+func _check_transmission_requirements(ending_id: String) -> bool:
+	var ending: Dictionary = _endings_data.get(ending_id, {})
+	var required: Array = ending.get("required_transmissions", [])
+	if required.is_empty():
+		return false
+	for req_tx in required:
+		if req_tx not in _ever_unlocked:
+			return false
+	return true
+
+
+## Check synthesis ending (all 3 other endings seen).
+func _check_synthesis_ending() -> bool:
+	var synthesis: Dictionary = _endings_data.get("synthesis", {})
+	var required: Array = synthesis.get("required_endings", [])
+	if required.is_empty():
+		return false
+	for req_end in required:
+		if req_end not in _endings_unlocked:
+			return false
+	return true
+
+
+## Record an ending as seen.
+func _record_ending(ending_id: String) -> void:
+	if ending_id not in _endings_unlocked:
+		_endings_unlocked.append(ending_id)
+
+
+## Get all endings unlocked across runs.
+func get_unlocked_endings() -> Array[String]:
+	return _endings_unlocked
+
+
+## Get truth axes values for display.
+func get_truth_axes() -> Dictionary:
+	return truth_axes.duplicate()
+
+
+## Restore meta state from save data.
+func restore_meta(ever_unlocked: Array, endings: Array) -> void:
+	_ever_unlocked = ever_unlocked.duplicate()
+	_endings_unlocked = endings.duplicate()
+
+
+## Get meta state for saving.
+func get_meta_state() -> Dictionary:
+	return {
+		"ever_unlocked": _ever_unlocked.duplicate(),
+		"endings_unlocked": _endings_unlocked.duplicate(),
+	}
 
 
 ## ============================================================================
