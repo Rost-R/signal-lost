@@ -48,6 +48,14 @@ func _ready() -> void:
 	_start_game()
 
 
+func _exit_tree() -> void:
+	## Free all placed towers to prevent leaked RIDs on scene reload
+	for pos in _grid.get_all_tower_positions():
+		var tower: Node2D = _grid.get_tower_at(pos)
+		if tower and is_instance_valid(tower):
+			tower.queue_free()
+
+
 func _unhandled_input(event: InputEvent) -> void:
 	if event is InputEventMouseButton and event.pressed:
 		if event.button_index == MOUSE_BUTTON_LEFT:

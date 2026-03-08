@@ -64,6 +64,11 @@ func _ready() -> void:
 	GameManager.wave_completed.connect(_on_wave_completed)
 
 
+func _exit_tree() -> void:
+	if GameManager.wave_completed.is_connected(_on_wave_completed):
+		GameManager.wave_completed.disconnect(_on_wave_completed)
+
+
 ## ============================================================================
 ## RESOURCE GENERATION
 ## ============================================================================
