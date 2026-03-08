@@ -10,6 +10,9 @@
 class_name RelayCore
 extends Node2D
 
+## Preload scripts to avoid class_name resolution issues
+const GridManagerScript = preload("res://scripts/systems/grid_manager.gd")
+
 
 ## ============================================================================
 ## STATE
@@ -32,7 +35,7 @@ func _draw() -> void:
 	if GameManager.STARTING_CORE_HP > 0:
 		hp_ratio = clampf(float(GameManager.core_hp) / GameManager.STARTING_CORE_HP, 0.0, 1.0)
 
-	var size := GridManager.CELL_SIZE * 0.4
+	var size := GridManagerScript.CELL_SIZE * 0.4
 	var pulse := sin(_pulse_phase) * 0.15 + 0.85
 
 	## Color shifts from purple (healthy) to red (damaged)

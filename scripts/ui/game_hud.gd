@@ -175,11 +175,11 @@ func _draw_tower_panel(vp_size: Vector2) -> void:
 		_draw_node.draw_rect(rect, bg_color)
 
 		## Border
-		var border := opt["color"] if i == selected_tower_index else BORDER_COLOR
+		var border: Color = opt["color"] if i == selected_tower_index else BORDER_COLOR
 		_draw_node.draw_rect(rect, border, false, 1.0)
 
 		## Text
-		var can_afford := GameManager.resources >= opt["cost"]
+		var can_afford: bool = GameManager.resources >= opt["cost"]
 		var text_col: Color = opt["color"] if can_afford else Color(0.4, 0.4, 0.4)
 		_draw_node.draw_string(font, Vector2(rect.position.x + 6, rect.position.y + 18), "[%s] %s" % [opt["key"], opt["name"]], HORIZONTAL_ALIGNMENT_LEFT, -1, 13, text_col)
 		_draw_node.draw_string(font, Vector2(rect.position.x + 6, rect.position.y + 34), "$%d" % opt["cost"], HORIZONTAL_ALIGNMENT_LEFT, -1, 11, text_col * Color(1, 1, 1, 0.7))

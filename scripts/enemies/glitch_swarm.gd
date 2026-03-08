@@ -8,7 +8,9 @@
 ## @author Signal Lost Team
 ## @version 0.1.0
 class_name GlitchSwarm
-extends EnemyBase
+extends "res://scripts/enemies/enemy_base.gd"
+
+## GridManagerScript inherited from EnemyBase via preload()
 
 
 func _init() -> void:
@@ -25,7 +27,7 @@ func _init() -> void:
 
 ## Override draw for unique glitch visual.
 func _draw_enemy() -> void:
-	var size := GridManager.CELL_SIZE * _size_scale * 0.35
+	var size := GridManagerScript.CELL_SIZE * _size_scale * 0.35
 	var color := enemy_color
 
 	if _hit_flash_timer > 0:

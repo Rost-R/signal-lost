@@ -10,13 +10,16 @@
 class_name EnemyBase
 extends Node2D
 
+## Preload scripts to avoid class_name resolution issues
+const GridManagerScript = preload("res://scripts/systems/grid_manager.gd")
+
 
 ## ============================================================================
 ## SIGNALS
 ## ============================================================================
 
-signal enemy_died(enemy: EnemyBase)
-signal enemy_reached_core(enemy: EnemyBase)
+signal enemy_died(enemy: Node2D)
+signal enemy_reached_core(enemy: Node2D)
 
 
 ## ============================================================================
@@ -233,7 +236,7 @@ func _calculate_progress() -> float:
 ## ============================================================================
 
 func _draw_enemy() -> void:
-	var size := GridManager.CELL_SIZE * _size_scale * 0.4
+	var size := GridManagerScript.CELL_SIZE * _size_scale * 0.4
 	var color := enemy_color
 
 	## Hit flash — white

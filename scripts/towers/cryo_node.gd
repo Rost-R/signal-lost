@@ -9,7 +9,9 @@
 ## @author Signal Lost Team
 ## @version 0.1.0
 class_name CryoNode
-extends TowerBase
+extends "res://scripts/towers/tower_base.gd"
+
+## GridManagerScript inherited from TowerBase via preload()
 
 
 ## ============================================================================
@@ -66,7 +68,7 @@ func _physics_process(delta: float) -> void:
 ## ============================================================================
 
 func _apply_slow_field(delta: float) -> void:
-	var range_px := effective_range * GridManager.CELL_SIZE
+	var range_px := effective_range * GridManagerScript.CELL_SIZE
 	var slow := _get_effective_slow()
 	var freeze_dur := _get_effective_freeze_duration()
 	var enemies := get_tree().get_nodes_in_group("enemies")
@@ -145,9 +147,9 @@ func _draw() -> void:
 	super._draw()
 
 	## Draw freeze field radius
-	var range_px := effective_range * GridManager.CELL_SIZE
+	var range_px := effective_range * GridManagerScript.CELL_SIZE
 	## Pulsing effect
-	var pulse := 0.05 + abs(sin(Time.get_ticks_msec() * 0.003)) * 0.05
+	var pulse: float = 0.05 + abs(sin(Time.get_ticks_msec() * 0.003)) * 0.05
 	draw_arc(Vector2.ZERO, range_px, 0, TAU, 64, Color(0.53, 0.87, 1, pulse), 1.0)
 
 	## Inner ring

@@ -10,24 +10,31 @@
 class_name WaveSpawner
 extends Node
 
+## Preload scripts to avoid class_name resolution issues
+const GlitchSwarmScript = preload("res://scripts/enemies/glitch_swarm.gd")
+const CorruptedSignalScript = preload("res://scripts/enemies/corrupted_signal.gd")
+const DataLeechScript = preload("res://scripts/enemies/data_leech.gd")
+const PhantomBurstScript = preload("res://scripts/enemies/phantom_burst.gd")
+const OverloadCoreScript = preload("res://scripts/enemies/overload_core.gd")
+
 
 ## ============================================================================
 ## SIGNALS
 ## ============================================================================
 
 signal wave_enemies_cleared()
-signal enemy_spawned(enemy: EnemyBase)
+signal enemy_spawned(enemy: Node2D)
 
 
 ## ============================================================================
 ## STATE
 ## ============================================================================
 
-var _pathfinder: Pathfinder
-var _grid_manager: GridManager
+var _pathfinder: Node
+var _grid_manager: Node2D
 var _wave_data: Dictionary = {}
 var _spawn_queue: Array[Dictionary] = []  # { enemy_id, delay_timer, count, interval, spawned }
-var _active_enemies: Array[EnemyBase] = []
+var _active_enemies: Array[Node2D] = []
 var _is_spawning: bool = false
 var _wave_timer: float = 0.0
 
@@ -42,6 +49,14 @@ var _enemy_scenes: Dictionary = {}
 func _ready() -> void:
 	_load_wave_data()
 	_load_enemy_scenes()
+
+
+func _exit_tree() -> void:
+	## Free all active enemies to prevent leaked RIDs on scene reload
+	for enemy in _active_enemies:
+		if is_instance_valid(enemy):
+			enemy.queue_free()
+	_active_enemies.clear()
 
 
 func _physics_process(delta: float) -> void:
@@ -62,7 +77,7 @@ func _physics_process(delta: float) -> void:
 ## PUBLIC API
 ## ============================================================================
 
-func setup(pathfinder: Pathfinder, grid_manager: GridManager) -> void:
+func setup(pathfinder: Node, grid_manager: Node2D) -> void:
 	_pathfinder = pathfinder
 	_grid_manager = grid_manager
 
@@ -70,7 +85,7 @@ func setup(pathfinder: Pathfinder, grid_manager: GridManager) -> void:
 ## Start spawning a wave by number (1-8).
 func start_wave(wave_number: int) -> void:
 	var wave_key := "wave_%d" % wave_number
-	var wave := _wave_data.get("wave_templates", {}).get(wave_key, {})
+	var wave: Dictionary = _wave_data.get("wave_templates", {}).get(wave_key, {})
 	if wave.is_empty():
 		push_warning("WaveSpawner: No data for %s" % wave_key)
 		return
@@ -138,12 +153,12 @@ func _spawn_enemy(enemy_id: String) -> void:
 		push_warning("WaveSpawner: No scene for enemy '%s'" % enemy_id)
 		return
 
-	var enemy: EnemyBase = scene.instantiate()
+	var enemy: Node2D = scene.instantiate()
 	add_child(enemy)
 
 	## Get path from first spawn point to core
-	var spawn := _grid_manager.spawn_points[0] if _grid_manager.spawn_points.size() > 0 else Vector2i(0, 4)
-	var path := _pathfinder.get_path_to_core(spawn)
+	var spawn: Vector2i = _grid_manager.spawn_points[0] if _grid_manager.spawn_points.size() > 0 else Vector2i(0, 4)
+	var path: PackedVector2Array = _pathfinder.get_path_to_core(spawn)
 
 	if path.is_empty():
 		push_warning("WaveSpawner: No valid path for enemy")
@@ -162,15 +177,15 @@ func _spawn_enemy(enemy_id: String) -> void:
 	enemy_spawned.emit(enemy)
 
 
-func _on_enemy_died(enemy: EnemyBase) -> void:
+func _on_enemy_died(enemy: Node2D) -> void:
 	_remove_enemy(enemy)
 
 
-func _on_enemy_reached_core(enemy: EnemyBase) -> void:
+func _on_enemy_reached_core(enemy: Node2D) -> void:
 	_remove_enemy(enemy)
 
 
-func _remove_enemy(enemy: EnemyBase) -> void:
+func _remove_enemy(enemy: Node2D) -> void:
 	_active_enemies.erase(enemy)
 	enemy.visible = false
 	enemy.set_physics_process(false)
@@ -180,13 +195,13 @@ func _remove_enemy(enemy: EnemyBase) -> void:
 
 func _cleanup_dead_enemies() -> void:
 	_active_enemies = _active_enemies.filter(
-		func(e: EnemyBase) -> bool: return is_instance_valid(e) and e.visible
+		func(e: Node2D) -> bool: return is_instance_valid(e) and e.visible
 	)
 
 
 func _get_wave_scaling() -> float:
-	var base := _wave_data.get("scaling", {}).get("base_multiplier", 1.0)
-	var per_wave := _wave_data.get("scaling", {}).get("per_wave_multiplier", 1.12)
+	var base: float = _wave_data.get("scaling", {}).get("base_multiplier", 1.0)
+	var per_wave: float = _wave_data.get("scaling", {}).get("per_wave_multiplier", 1.12)
 	return base * pow(per_wave, GameManager.current_wave - 1)
 
 
@@ -195,6 +210,9 @@ func _get_spawn_interval(enemy_id: String) -> float:
 	match enemy_id:
 		"glitch_swarm": return 0.3
 		"corrupted_signal": return 0.8
+		"data_leech": return 1.5
+		"phantom_burst": return 2.0
+		"overload_core": return 0.0
 		_: return 0.5
 
 
@@ -214,8 +232,11 @@ func _load_wave_data() -> void:
 func _load_enemy_scenes() -> void:
 	## For MVP, we create scenes programmatically since we use _draw()
 	## In production these would be .tscn files
-	_enemy_scenes["glitch_swarm"] = _create_enemy_scene(GlitchSwarm)
-	_enemy_scenes["corrupted_signal"] = _create_enemy_scene(CorruptedSignal)
+	_enemy_scenes["glitch_swarm"] = _create_enemy_scene(GlitchSwarmScript)
+	_enemy_scenes["corrupted_signal"] = _create_enemy_scene(CorruptedSignalScript)
+	_enemy_scenes["data_leech"] = _create_enemy_scene(DataLeechScript)
+	_enemy_scenes["phantom_burst"] = _create_enemy_scene(PhantomBurstScript)
+	_enemy_scenes["overload_core"] = _create_enemy_scene(OverloadCoreScript)
 
 
 func _create_enemy_scene(script: GDScript) -> PackedScene:

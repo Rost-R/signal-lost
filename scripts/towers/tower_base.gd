@@ -11,6 +11,9 @@
 class_name TowerBase
 extends Node2D
 
+## Preload scripts to avoid class_name resolution issues
+const GridManagerScript = preload("res://scripts/systems/grid_manager.gd")
+
 
 ## ============================================================================
 ## SIGNALS
@@ -190,7 +193,7 @@ func _update_target() -> void:
 
 func _get_enemies_in_range() -> Array[Node2D]:
 	var result: Array[Node2D] = []
-	var range_px := effective_range * GridManager.CELL_SIZE
+	var range_px := effective_range * GridManagerScript.CELL_SIZE
 	var enemies := get_tree().get_nodes_in_group("enemies")
 	for enemy in enemies:
 		if is_instance_valid(enemy) and enemy.visible:
@@ -277,7 +280,7 @@ func _get_upgrade_cost(_target_level: int) -> int:
 
 func _draw_tower() -> void:
 	## Base — hexagonal shape
-	var size := GridManager.CELL_SIZE * 0.35
+	var size := GridManagerScript.CELL_SIZE * 0.35
 	var points := PackedVector2Array()
 	for i in 6:
 		var angle := deg_to_rad(60 * i - 30)
@@ -292,5 +295,5 @@ func _draw_tower() -> void:
 
 
 func _draw_range() -> void:
-	var range_px := effective_range * GridManager.CELL_SIZE
+	var range_px := effective_range * GridManagerScript.CELL_SIZE
 	draw_arc(Vector2.ZERO, range_px, 0, TAU, 64, Color(tower_color, 0.15), 1.0)

@@ -165,7 +165,7 @@ func get_adjacent_towers(grid_pos: Vector2i) -> Array[Vector2i]:
 	var result: Array[Vector2i] = []
 	var directions := [Vector2i.UP, Vector2i.DOWN, Vector2i.LEFT, Vector2i.RIGHT]
 	for dir in directions:
-		var check := grid_pos + dir
+		var check: Vector2i = grid_pos + dir
 		if _towers.has(check):
 			result.append(check)
 	return result

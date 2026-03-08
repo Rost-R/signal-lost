@@ -10,13 +10,16 @@
 class_name Pathfinder
 extends Node
 
+## Preload scripts to avoid class_name resolution issues
+const GridManagerScript = preload("res://scripts/systems/grid_manager.gd")
+
 
 ## ============================================================================
 ## STATE
 ## ============================================================================
 
 var _astar: AStarGrid2D
-var _grid_manager: GridManager
+var _grid_manager: Node2D
 
 
 ## ============================================================================
@@ -24,7 +27,7 @@ var _grid_manager: GridManager
 ## ============================================================================
 
 ## Initialize the pathfinder with a grid manager reference.
-func setup(grid_manager: GridManager) -> void:
+func setup(grid_manager: Node2D) -> void:
 	_grid_manager = grid_manager
 	_rebuild()
 	_grid_manager.tower_placed.connect(_on_grid_changed)
@@ -36,7 +39,7 @@ func get_path_to_core(spawn_pos: Vector2i) -> PackedVector2Array:
 	if not _astar:
 		return PackedVector2Array()
 
-	var core := _grid_manager.core_position
+	var core: Vector2i = _grid_manager.core_position
 	if core == Vector2i(-1, -1):
 		return PackedVector2Array()
 
@@ -65,19 +68,19 @@ func has_valid_path() -> bool:
 
 func _rebuild() -> void:
 	_astar = AStarGrid2D.new()
-	_astar.region = Rect2i(0, 0, GridManager.GRID_WIDTH, GridManager.GRID_HEIGHT)
+	_astar.region = Rect2i(0, 0, GridManagerScript.GRID_WIDTH, GridManagerScript.GRID_HEIGHT)
 	_astar.cell_size = Vector2(1, 1)
 	_astar.diagonal_mode = AStarGrid2D.DIAGONAL_MODE_NEVER
 	_astar.update()
 
 	## Mark non-walkable cells as solid
-	for x in GridManager.GRID_WIDTH:
-		for y in GridManager.GRID_HEIGHT:
+	for x in GridManagerScript.GRID_WIDTH:
+		for y in GridManagerScript.GRID_HEIGHT:
 			var pos := Vector2i(x, y)
-			var cell := _grid_manager.get_cell(pos)
-			if cell == GridManager.CellType.SLOT or \
-			   cell == GridManager.CellType.TOWER or \
-			   cell == GridManager.CellType.BLOCKED:
+			var cell: int = _grid_manager.get_cell(pos)
+			if cell == GridManagerScript.CellType.SLOT or \
+			   cell == GridManagerScript.CellType.TOWER or \
+			   cell == GridManagerScript.CellType.BLOCKED:
 				_astar.set_point_solid(pos, true)
 
 

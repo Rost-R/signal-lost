@@ -9,7 +9,7 @@
 ## @author Signal Lost Team
 ## @version 0.1.0
 class_name ArcRelay
-extends TowerBase
+extends "res://scripts/towers/tower_base.gd"
 
 
 ## ============================================================================
