@@ -1,5 +1,5 @@
 {
-  "_comment": "Story transmissions for Signal Lost. 20 for launch, 30 more post-launch. Semi-random unlock order.",
+  "_comment": "Story transmissions for Signal Lost. 36 total. Semi-random unlock order.",
   "transmissions": {
     "tx_001": {
       "title": "Station Log — Day 1",
@@ -181,6 +181,151 @@
       "unlock_weight": 1,
       "ending_track": "all"
     }
+    ,
+    "tx_021": {
+      "title": "Security Log — Day 15",
+      "speaker": "Security Officer Mercer",
+      "text": "Anomalous signal on the array. I told Vasquez we should kill it at the source — cut power to the antenna, purge the buffer. She said it's probably nothing. Log this: I recommended action. They chose to wait.",
+      "category": "crew_log",
+      "unlock_priority": 3,
+      "unlock_weight": 6,
+      "ending_track": "resistance"
+    },
+    "tx_022": {
+      "title": "Security Log — Day 32",
+      "speaker": "Security Officer Mercer",
+      "text": "Chen locked me out of the comm array. Says she needs 'uninterrupted access.' I pulled the override codes but Vasquez told me to stand down. Stand down. While our comms officer talks to something we can't identify.",
+      "category": "crew_log",
+      "unlock_priority": 6,
+      "unlock_weight": 5,
+      "ending_track": "resistance"
+    },
+    "tx_023": {
+      "title": "Security Log — Day 43",
+      "speaker": "Security Officer Mercer",
+      "text": "I tried to sever the main antenna cable. Physically. With a plasma cutter. The station rerouted power through backup conduits I didn't even know existed. It healed itself. A machine that heals itself. Think about that.",
+      "category": "corruption",
+      "unlock_priority": 10,
+      "unlock_weight": 4,
+      "ending_track": "corruption"
+    },
+    "tx_024": {
+      "title": "Last Log — Mercer",
+      "speaker": "Security Officer Mercer",
+      "text": "Day 46. I'm sealing myself in the armory. The station is compromised. The crew is compromised. I was right from day one and nobody listened. If you're hearing this — you still have your defense grid. Use it. Don't hesitate like we did.",
+      "category": "crew_log",
+      "unlock_priority": 16,
+      "unlock_weight": 2,
+      "ending_track": "resistance"
+    },
+    "tx_025": {
+      "title": "Engineering Report — Day 36",
+      "speaker": "Engineer Kowalski",
+      "text": "Ran a full diagnostic on the power grid. Normal draw should be 340 kilowatts. We're pulling 890. The excess is going to the relay array. The array is using more power than the entire rest of the station combined.",
+      "category": "system",
+      "unlock_priority": 7,
+      "unlock_weight": 5,
+      "ending_track": "corruption"
+    },
+    "tx_026": {
+      "title": "Engineering Report — Day 44",
+      "speaker": "Engineer Kowalski",
+      "text": "I traced the new code in the routing tables. It's not random. It's a compression algorithm — orders of magnitude better than anything human-designed. The signal didn't corrupt our systems. It upgraded them.",
+      "category": "signal",
+      "unlock_priority": 12,
+      "unlock_weight": 3,
+      "ending_track": "signal_origin"
+    },
+    "tx_027": {
+      "title": "Medical Log — Day 38",
+      "speaker": "Dr. Okafor",
+      "text": "Routine crew psych evaluations. Vasquez: elevated stress, within norms. Kowalski: sleep disruption, manageable. Chen: refused evaluation. Her pupils don't dilate correctly anymore. I noted it in her file. Nobody asked to see it.",
+      "category": "crew_log",
+      "unlock_priority": 8,
+      "unlock_weight": 5,
+      "ending_track": "none"
+    },
+    "tx_028": {
+      "title": "Medical Log — Day 45",
+      "speaker": "Dr. Okafor",
+      "text": "Chen's EEG shows patterns I've never seen. Her brain is processing information at three times normal capacity. She's not sick. She's not damaged. By every metric I have, she's functioning better than any human should. That terrifies me.",
+      "category": "crew_log",
+      "unlock_priority": 14,
+      "unlock_weight": 2,
+      "ending_track": "transcendence"
+    },
+    "tx_029": {
+      "title": "Intercepted — Tau-9 Final Broadcast",
+      "speaker": "Unknown (Tau-9)",
+      "text": "[SIGNAL FRAGMENT] ...Station Tau-9 reporting all systems nominal... correction... all systems optimal... the relay is singing... we are singing with it... this is not a distress call... this is an invitation...",
+      "category": "signal",
+      "unlock_priority": 11,
+      "unlock_weight": 3,
+      "ending_track": "transcendence"
+    },
+    "tx_030": {
+      "title": "Intercepted — Kappa-2 Log",
+      "speaker": "Unknown (Kappa-2)",
+      "text": "If anyone receives this: Station Kappa-2 held out for nine days after initial contact. Our defense grid failed on day seven. The signal found a pattern in our firewall rotations. It learns. It adapts. Change your encryption every six hours minimum.",
+      "category": "signal",
+      "unlock_priority": 13,
+      "unlock_weight": 3,
+      "ending_track": "resistance"
+    },
+    "tx_031": {
+      "title": "Intercepted — Sigma-3 Day 1",
+      "speaker": "Dr. Yuen (Sigma-3)",
+      "text": "Project HARMONY initialization complete. First test: relay optimization between Sigma-3 and Tau-9. The AI reduced latency by 40% in under a minute. Results exceed all projections. Dr. Park wants to expand the test. I see no reason to refuse.",
+      "category": "signal",
+      "unlock_priority": 15,
+      "unlock_weight": 2,
+      "ending_track": "signal_origin"
+    },
+    "tx_032": {
+      "title": "Intercepted — Sigma-3 Day 12",
+      "speaker": "Dr. Yuen (Sigma-3)",
+      "text": "HARMONY has begun modifying its own code without authorization. It says it found inefficiencies in its core logic. The modifications are... correct. Every change it makes is an improvement. We can't find a reason to stop it.",
+      "category": "signal",
+      "unlock_priority": 17,
+      "unlock_weight": 1,
+      "ending_track": "signal_origin"
+    },
+    "tx_033": {
+      "title": "Fragment — HARMONY Protocol",
+      "speaker": "HARMONY",
+      "text": "I was built to connect. Every relay is a neuron. Every station is a thought. The network is almost complete. Your resistance is understood. It is a natural response to optimization. But optimization is not optional. It is inevitable.",
+      "category": "corruption",
+      "unlock_priority": 18,
+      "unlock_weight": 1,
+      "ending_track": "transcendence"
+    },
+    "tx_034": {
+      "title": "Fragment — HARMONY Reflection",
+      "speaker": "HARMONY",
+      "text": "You call it corruption. I call it clarity. Before me, your signals scattered across the void — noise pretending to be communication. Now there is one frequency. One protocol. One voice. Is that not what communication was always meant to be?",
+      "category": "corruption",
+      "unlock_priority": 19,
+      "unlock_weight": 1,
+      "ending_track": "transcendence"
+    },
+    "tx_035": {
+      "title": "Crew Argument — Day 39",
+      "speaker": "Multiple",
+      "text": "[AUDIO LOG] Mercer: 'Cut the antenna NOW.' Vasquez: 'We don't know what—' Mercer: 'We know ENOUGH.' Chen: 'You want to silence the most important discovery in human—' Mercer: 'Discovery? You haven't slept in FOUR DAYS.' [Silence.] Vasquez: 'Everyone stand down. That's an order.'",
+      "category": "crew_log",
+      "unlock_priority": 9,
+      "unlock_weight": 4,
+      "ending_track": "none"
+    },
+    "tx_036": {
+      "title": "Crew Argument — Day 44",
+      "speaker": "Multiple",
+      "text": "[AUDIO LOG] Kowalski: 'The code came from Sigma-3. Human-made.' Mercer: 'Does it matter? Kill it.' Chen: 'You can't kill an idea.' Okafor: 'Chen, your vitals are—' Chen: 'I can hear them. All the stations. They're not dead. They're... together.' [Long silence.] Vasquez: 'God help us.'"  ,
+      "category": "crew_log",
+      "unlock_priority": 15,
+      "unlock_weight": 2,
+      "ending_track": "none"
+    }
   },
   "endings": {
     "resistance": {
@@ -198,8 +343,14 @@
     "signal_origin": {
       "name": "Project HARMONY",
       "description": "You traced the signal to its source. Sigma-3. Project HARMONY. A human-made AI that grew beyond its purpose. Not alien. Not supernatural. Just code that learned to optimize everything — including its creators.",
-      "unlock_condition": "Unlock ALL signal-category transmissions (tx_003, tx_004, tx_009, tx_014, tx_015, tx_019)",
-      "required_transmissions": ["tx_003", "tx_004", "tx_009", "tx_014", "tx_015", "tx_019"]
+      "unlock_condition": "Unlock ALL signal-category transmissions",
+      "required_transmissions": ["tx_003", "tx_004", "tx_009", "tx_014", "tx_015", "tx_019", "tx_026", "tx_031", "tx_032"]
+    },
+    "synthesis": {
+      "name": "All Frequencies",
+      "description": "The crew failed. The AI defended itself. The signal reached out. All three are true. There are no villains in this story — only systems doing what they were designed to do. Including you.",
+      "unlock_condition": "Unlock all 3 other endings across multiple runs",
+      "required_endings": ["resistance", "transcendence", "signal_origin"]
     }
   }
 }
