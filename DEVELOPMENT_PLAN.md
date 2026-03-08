@@ -217,7 +217,29 @@ Boss/Alert:    #AA44FF (purple)
 
 ---
 
-## Phase 5: Polish & VFX — Weeks 9-10
+## Phase 5: Art & Visual Assets — Weeks 9-10
+
+> **All code complete. Now replace _draw() placeholders with real art (AI-generated via Midjourney/DALL-E/Stable Diffusion).**
+
+| Task | Priority |
+|------|----------|
+| Art style guide (CRT terminal aesthetic, color palette, reference board) | P0 |
+| Tower sprites (6 types x 3 upgrade levels = 18 sprites) | P0 |
+| Enemy sprites (5 types + death/hit animations) | P0 |
+| Grid tileset (floor, walls, paths, spawn points, core) | P0 |
+| Map backgrounds (3-4 sector variants) | P0 |
+| VFX sprites (projectiles, explosions, freeze, lightning, shields) | P0 |
+| UI icons (tower icons, resource icons, wave indicators, upgrades) | P0 |
+| Main menu background + game logo | P0 |
+| UI frames and panels (terminal aesthetic) | P0 |
+| Integration: replace _draw() with Sprite2D/AnimatedSprite2D | P0 |
+| Sprite atlas packing (performance) | P1 |
+
+**Milestone:** Game looks like a real product, not programmer art.
+
+---
+
+## Phase 6: Polish & VFX — Weeks 11-12
 
 | Task | Priority |
 |------|----------|
@@ -235,7 +257,7 @@ Boss/Alert:    #AA44FF (purple)
 
 ---
 
-## Phase 6: Testing & Ship — Weeks 11-12
+## Phase 7: Testing & Ship — Weeks 13-14
 
 | Task | Priority |
 |------|----------|

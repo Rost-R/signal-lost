@@ -37,6 +37,9 @@ const TOWER_OPTIONS := [
 	{ "id": "pulse_emitter", "name": "Pulse", "cost": 100, "key": "1", "color": Color(0, 0.78, 1) },
 	{ "id": "arc_relay", "name": "Arc", "cost": 150, "key": "2", "color": Color(0.27, 0.53, 1) },
 	{ "id": "cryo_node", "name": "Cryo", "cost": 120, "key": "3", "color": Color(0.53, 0.87, 1) },
+	{ "id": "data_siphon", "name": "Siphon", "cost": 200, "key": "4", "color": Color(0, 1, 0.53) },
+	{ "id": "amplifier", "name": "Amp", "cost": 180, "key": "5", "color": Color(1, 0.87, 0.27) },
+	{ "id": "shield_generator", "name": "Shield", "cost": 250, "key": "6", "color": Color(0.67, 0.27, 1) },
 ]
 
 
@@ -47,6 +50,7 @@ const TOWER_OPTIONS := [
 var selected_tower_index: int = -1
 var _info_panel: Control
 var _draw_node: Control
+var _selected_tower: Node2D = null  # Currently selected placed tower for info
 
 
 ## ============================================================================
@@ -78,8 +82,29 @@ func _unhandled_input(event: InputEvent) -> void:
 				_select_tower(1)
 			KEY_3:
 				_select_tower(2)
+			KEY_4:
+				_select_tower(3)
+			KEY_5:
+				_select_tower(4)
+			KEY_6:
+				_select_tower(5)
 			KEY_ESCAPE:
 				_select_tower(-1)  # Deselect
+				hide_tower_info()
+			KEY_U:
+				## Upgrade selected tower
+				if _selected_tower:
+					tower_upgrade_requested.emit()
+			KEY_X:
+				## Sell selected tower
+				if _selected_tower:
+					tower_sell_requested.emit()
+			KEY_T:
+				## Cycle targeting priority on selected tower
+				if _selected_tower and "target_priority" in _selected_tower:
+					var cur: int = _selected_tower.target_priority
+					_selected_tower.target_priority = (cur + 1) % 4
+					_draw_node.queue_redraw()
 			KEY_SPACE:
 				if GameManager.current_phase == GameManager.GamePhase.BUILD or \
 				   GameManager.current_phase == GameManager.GamePhase.BETWEEN_WAVES:
@@ -94,6 +119,18 @@ func get_selected_tower_id() -> String:
 	if selected_tower_index < 0 or selected_tower_index >= TOWER_OPTIONS.size():
 		return ""
 	return TOWER_OPTIONS[selected_tower_index]["id"]
+
+
+## Show info panel for a placed tower.
+func show_tower_info(tower: Node2D) -> void:
+	_selected_tower = tower
+	_draw_node.queue_redraw()
+
+
+## Hide the tower info panel.
+func hide_tower_info() -> void:
+	_selected_tower = null
+	_draw_node.queue_redraw()
 
 
 ## ============================================================================
@@ -120,6 +157,7 @@ func _on_draw() -> void:
 	_draw_tower_panel(vp_size)
 	_draw_phase_indicator(vp_size)
 	_draw_wave_info(vp_size)
+	_draw_tower_info_panel(vp_size)
 
 
 func _draw_top_bar(vp_size: Vector2) -> void:
@@ -158,15 +196,16 @@ func _draw_tower_panel(vp_size: Vector2) -> void:
 	_draw_node.draw_rect(Rect2(0, panel_y, vp_size.x, panel_h), PANEL_COLOR)
 	_draw_node.draw_line(Vector2(0, panel_y), Vector2(vp_size.x, panel_y), BORDER_COLOR, 1.0)
 
-	## Tower buttons
-	var btn_w := 120.0
+	## Tower buttons — compact to fit 6 towers + start wave
+	var btn_w := 90.0
 	var btn_h := 44.0
-	var start_x := 12.0
+	var gap := 6.0
+	var start_x := 8.0
 	var btn_y := panel_y + 10.0
 
 	for i in TOWER_OPTIONS.size():
 		var opt: Dictionary = TOWER_OPTIONS[i]
-		var rect := Rect2(start_x + i * (btn_w + 8), btn_y, btn_w, btn_h)
+		var rect := Rect2(start_x + i * (btn_w + gap), btn_y, btn_w, btn_h)
 
 		## Button background
 		var bg_color := PANEL_COLOR
@@ -181,17 +220,17 @@ func _draw_tower_panel(vp_size: Vector2) -> void:
 		## Text
 		var can_afford: bool = GameManager.resources >= opt["cost"]
 		var text_col: Color = opt["color"] if can_afford else Color(0.4, 0.4, 0.4)
-		_draw_node.draw_string(font, Vector2(rect.position.x + 6, rect.position.y + 18), "[%s] %s" % [opt["key"], opt["name"]], HORIZONTAL_ALIGNMENT_LEFT, -1, 13, text_col)
-		_draw_node.draw_string(font, Vector2(rect.position.x + 6, rect.position.y + 34), "$%d" % opt["cost"], HORIZONTAL_ALIGNMENT_LEFT, -1, 11, text_col * Color(1, 1, 1, 0.7))
+		_draw_node.draw_string(font, Vector2(rect.position.x + 4, rect.position.y + 16), "[%s] %s" % [opt["key"], opt["name"]], HORIZONTAL_ALIGNMENT_LEFT, -1, 11, text_col)
+		_draw_node.draw_string(font, Vector2(rect.position.x + 4, rect.position.y + 32), "$%d" % opt["cost"], HORIZONTAL_ALIGNMENT_LEFT, -1, 10, text_col * Color(1, 1, 1, 0.7))
 
 	## Start Wave button (during build phase)
 	if GameManager.current_phase == GameManager.GamePhase.BUILD or \
 	   GameManager.current_phase == GameManager.GamePhase.BETWEEN_WAVES:
-		var sw_rect := Rect2(vp_size.x - 180, btn_y, 160, btn_h)
+		var sw_rect := Rect2(vp_size.x - 160, btn_y, 140, btn_h)
 		_draw_node.draw_rect(sw_rect, Color(0, 1, 0.53, 0.1))
 		_draw_node.draw_rect(sw_rect, TEXT_COLOR, false, 1.5)
-		_draw_node.draw_string(font, Vector2(sw_rect.position.x + 10, sw_rect.position.y + 18), "[SPACE]", HORIZONTAL_ALIGNMENT_LEFT, -1, 11, TEXT_COLOR * Color(1, 1, 1, 0.6))
-		_draw_node.draw_string(font, Vector2(sw_rect.position.x + 10, sw_rect.position.y + 34), "START WAVE", HORIZONTAL_ALIGNMENT_LEFT, -1, 14, TEXT_COLOR)
+		_draw_node.draw_string(font, Vector2(sw_rect.position.x + 8, sw_rect.position.y + 18), "[SPACE]", HORIZONTAL_ALIGNMENT_LEFT, -1, 11, TEXT_COLOR * Color(1, 1, 1, 0.6))
+		_draw_node.draw_string(font, Vector2(sw_rect.position.x + 8, sw_rect.position.y + 34), "START WAVE", HORIZONTAL_ALIGNMENT_LEFT, -1, 13, TEXT_COLOR)
 
 
 func _draw_phase_indicator(vp_size: Vector2) -> void:
@@ -231,3 +270,74 @@ func _draw_wave_info(vp_size: Vector2) -> void:
 	   GameManager.current_phase == GameManager.GamePhase.BOSS:
 		var enemy_count := get_tree().get_nodes_in_group("enemies").size()
 		_draw_node.draw_string(font, Vector2(vp_size.x - 150, 22), "ENEMIES: %d" % enemy_count, HORIZONTAL_ALIGNMENT_LEFT, -1, 14, DANGER_COLOR)
+
+
+func _draw_tower_info_panel(vp_size: Vector2) -> void:
+	if not _selected_tower or not is_instance_valid(_selected_tower):
+		_selected_tower = null
+		return
+
+	var font := ThemeDB.fallback_font
+	if not font:
+		return
+
+	## Right-side info panel
+	var panel_w := 180.0
+	var panel_h := 160.0
+	var panel_x := vp_size.x - panel_w - 8
+	var panel_y := 40.0
+	var rect := Rect2(panel_x, panel_y, panel_w, panel_h)
+
+	_draw_node.draw_rect(rect, PANEL_COLOR)
+	_draw_node.draw_rect(rect, BORDER_COLOR, false, 1.0)
+
+	var x := panel_x + 8
+	var y := panel_y + 18
+
+	## Tower name
+	var t_name: String = _selected_tower.tower_name if "tower_name" in _selected_tower else "Tower"
+	var t_color: Color = _selected_tower.tower_color if "tower_color" in _selected_tower else ACCENT_COLOR
+	_draw_node.draw_string(font, Vector2(x, y), t_name, HORIZONTAL_ALIGNMENT_LEFT, -1, 14, t_color)
+	y += 18
+
+	## Level
+	var t_level: int = _selected_tower.level if "level" in _selected_tower else 1
+	_draw_node.draw_string(font, Vector2(x, y), "Level: %d/3" % t_level, HORIZONTAL_ALIGNMENT_LEFT, -1, 11, TEXT_COLOR)
+	y += 16
+
+	## Damage (if applicable)
+	if "effective_damage" in _selected_tower and _selected_tower.effective_damage > 0:
+		_draw_node.draw_string(font, Vector2(x, y), "DMG: %.0f" % _selected_tower.effective_damage, HORIZONTAL_ALIGNMENT_LEFT, -1, 11, TEXT_COLOR)
+		y += 14
+
+	## Range
+	if "effective_range" in _selected_tower:
+		_draw_node.draw_string(font, Vector2(x, y), "RNG: %.1f" % _selected_tower.effective_range, HORIZONTAL_ALIGNMENT_LEFT, -1, 11, TEXT_COLOR)
+		y += 14
+
+	## Shield (for Shield Generator)
+	if _selected_tower.has_method("absorb_damage") and "current_shield" in _selected_tower:
+		_draw_node.draw_string(font, Vector2(x, y), "SHIELD: %d/%d" % [int(_selected_tower.current_shield), _selected_tower.max_shield_hp], HORIZONTAL_ALIGNMENT_LEFT, -1, 11, Color(0.67, 0.27, 1))
+		y += 14
+
+	## Targeting priority (for attack towers)
+	if "target_priority" in _selected_tower and "effective_attack_speed" in _selected_tower and _selected_tower.effective_attack_speed > 0:
+		var priority_names := ["FIRST", "LAST", "STRONG", "WEAK"]
+		var pri: int = _selected_tower.target_priority
+		_draw_node.draw_string(font, Vector2(x, y), "[T] Target: %s" % priority_names[pri], HORIZONTAL_ALIGNMENT_LEFT, -1, 11, TEXT_COLOR)
+		y += 14
+
+	y += 4
+
+	## Upgrade button
+	if t_level < 3:
+		var upgrade_cost: int = _selected_tower.get_next_upgrade_cost() if _selected_tower.has_method("get_next_upgrade_cost") else -1
+		if upgrade_cost > 0:
+			var can_upgrade: bool = GameManager.resources >= upgrade_cost
+			var u_col: Color = ACCENT_COLOR if can_upgrade else Color(0.4, 0.4, 0.4)
+			_draw_node.draw_string(font, Vector2(x, y), "[U] Upgrade $%d" % upgrade_cost, HORIZONTAL_ALIGNMENT_LEFT, -1, 11, u_col)
+			y += 16
+
+	## Sell button
+	var sell_val: int = _selected_tower.get_sell_value() if _selected_tower.has_method("get_sell_value") else 0
+	_draw_node.draw_string(font, Vector2(x, y), "[X] Sell +$%d" % sell_val, HORIZONTAL_ALIGNMENT_LEFT, -1, 11, WARNING_COLOR)

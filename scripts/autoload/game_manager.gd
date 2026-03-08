@@ -48,7 +48,7 @@ enum TargetPriority {
 ## CONSTANTS
 ## ============================================================================
 
-const STARTING_RESOURCES := 300
+const STARTING_RESOURCES := 350
 const STARTING_CORE_HP := 20
 const MAX_WAVES := 8
 
