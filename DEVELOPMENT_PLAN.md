@@ -2,7 +2,7 @@
 
 > Roguelike Tower Defense with Procedural Storytelling
 > Target: Steam (Win/Mac/Linux) | $4.99 | 10,000+ copies
-> Engine: Godot 4.3+ | Language: GDScript
+> Engine: Godot 4.6.1 | Language: GDScript
 > Created: 2026-03-08
 
 ---
@@ -11,7 +11,7 @@
 
 | Change | Reason | Agent |
 |--------|--------|-------|
-| 6-8 waves per run instead of 8-12 | 15 min run unrealistic with 12 waves | Gori |
+| 10 waves per run (9 regular + 1 boss) | GDD v2 spec, balanced for 22-28 min runs | GDD v2 |
 | 20 transmissions at launch, not 50 | Scope creep. Remaining 30 = post-launch content | Gori + Pifi |
 | 3 concrete endings instead of "random interpretations" | Player won't understand they "chose" an ending | Gori |
 | Object pooling from day one | 100+ enemies = need optimization immediately | Nikola |
@@ -27,7 +27,7 @@
 ## Architecture Decisions
 
 ### ADR-001: Scene Tree (not ECS)
-Godot Scene Tree + Resources for data. ECS is overkill for 6 tower types and 5 enemies.
+Godot Scene Tree + Resources for data. ECS is overkill for 6 tower types and 8 enemies.
 
 ### ADR-002: State Management — Autoload Singletons
 - `GameManager` — current wave, resources, core HP
@@ -100,19 +100,20 @@ Boss/Alert:    #AA44FF (purple)
 
 ## Tower System
 
-| Tower | Role | Cost | Synergy |
-|-------|------|------|---------|
-| Pulse Emitter | Single target, high DPS | 100 | +15% dmg near Amplifier |
-| Arc Relay | Chain lightning, crowd control | 150 | +1 chain per adjacent Arc Relay |
-| Cryo Node | Slows enemies in area | 120 | Frozen enemies take 2x from Pulse |
-| Data Siphon | Generates extra resources | 200 | +10% yield per decoded transmission |
-| Amplifier | Boosts adjacent tower stats | 180 | Effect doubles if surrounded by 3+ towers (NO recursive stacking) |
-| Shield Generator | Absorbs damage to relay core | 250 | Recharges faster near Cryo Node |
+| Tower | Role | Cost | Power | Synergy |
+|-------|------|------|-------|---------|
+| Pulse Emitter | Single target, high DPS | 50 | 1 | 2x dmg to frozen enemies; +20% near Scrambler |
+| Arc Relay | Chain lightning, crowd control | 70 | 1 | +1 chain per adjacent Arc Relay (max +3) |
+| Cryo Node | Slows/freezes enemies in area | 60 | 1 | Adjacent Prism Beam gets +30% damage |
+| Scrambler Dish | Debuff: reduces armor/resistance | 75 | 1 | Adjacent Pulse Emitter gets +20% damage |
+| Prism Beam | Linear piercing beam (hits all in line) | 90 | 2 | +30% damage when adjacent to Cryo Node |
+| Salvage Matrix | Economy: bonus scrap + passive income | 80 | 1 | Enables greedy high-cost builds |
 
-**Stacking Rules (anti-exploit):**
-- Amplifier cannot boost another Amplifier
-- Maximum synergy bonus cap: 200% per tower
-- Chain lightning max depth: 5
+**Economy:**
+- Starting Scrap: 140
+- Power Cap: 8 (towers consume 1-2 power each)
+- Sell Refund: 70%
+- Tower Upgrades: 3 levels per tower
 
 **Targeting Priorities (player selectable):**
 - First (default) — targets enemy closest to core
@@ -124,26 +125,36 @@ Boss/Alert:    #AA44FF (purple)
 
 ## Enemy System
 
-| Enemy | Behavior | Counter |
-|-------|----------|---------|
-| Glitch Swarm | Fast, low HP, masses | Arc Relay chain, area damage |
-| Corrupted Signal | Medium, shielded | Pulse Emitter focused fire |
-| Data Leech | Slow, drains tower energy | Cryo Node + keep distance |
-| Phantom Burst | Invisible, teleports | Amplified detection towers |
-| Overload Core (Boss) | Massive HP, spawns minions, phases | Full tower synergy required |
+| Enemy | Tier | Behavior | Counter |
+|-------|------|----------|---------|
+| Glitch Swarm | Common | Fast, low HP, masses | Arc Relay chain, AoE |
+| Corrupted Carrier | Common | Slow tank, high armor | Sustained DPS, Scrambler debuff |
+| Mirror Fragment | Common | Splits into 2 copies on death | Avoid overkill, AoE cleanup |
+| Null Shield | Common | Front shield absorbs 50% per hit | Scrambler debuff disables shield |
+| Phase Leech | Elite | Teleports forward along path | Layered defense, not linear |
+| Parasite Packet | Elite | Heals nearby enemies every 2s | Priority target, focus fire |
+| **The Choir** | Boss | Spawns echo units (max 4) | Multi-lane response, sustained DPS |
+| **Black Relay** | Boss | EMP disables nearby towers for 3s | Backup builds, tower spacing |
+
+**Elite Modifiers (applied in later waves):**
+- Encrypted — 50% freeze resistance, 30% slow resistance
+- Overclocked — 1.5x speed
+- Ghosted — 40% reduced targeting probability
+
+**Waves:** 9 regular + 1 boss = 10 per run
 
 ---
 
-## Phase 0: Pre-production (2-3 days)
+## Phase 0: Pre-production (2-3 days) — COMPLETE
 
-- [ ] Finalize synergy matrix (all tower combinations + stacking rules)
-- [ ] Define tower targeting priorities
-- [ ] Create data schemas: towers.json, enemies.json, waves.json
-- [ ] Set up Godot 4.3+ project skeleton
-- [ ] Create GitHub repo
-- [ ] Set up branches (main, develop)
+- [x] Finalize synergy matrix (all tower combinations + stacking rules)
+- [x] Define tower targeting priorities
+- [x] Create data schemas: towers.json, enemies.json, waves.json
+- [x] Set up Godot 4.6.1 project skeleton
+- [x] Create GitHub repo
+- [x] Set up branches (main, develop)
 - [ ] Steam Tags strategy (Pifi)
-- [ ] Install Godot 4.3+ on dev machine
+- [x] Install Godot 4.6.1 on dev machine
 
 ---
 
@@ -151,37 +162,39 @@ Boss/Alert:    #AA44FF (purple)
 
 **Goal: Playable 1-map demo. If not fun — STOP and redesign.**
 
-| Task | Priority | Hours |
-|------|----------|-------|
-| Grid system (TileMap + placement slots) | P0 | 8 |
-| Tower base class + 3 towers (Pulse, Arc, Cryo) | P0 | 12 |
-| Enemy base class + 2 enemies (Swarm, Signal) | P0 | 6 |
-| A* pathfinding (AStarGrid2D) | P0 | 6 |
-| Wave spawner (5 waves + 1 mini-boss) | P0 | 6 |
-| Relay Core (HP, game over) | P0 | 4 |
-| Resource economy (earn/spend) | P0 | 4 |
-| Basic HUD (HP, resources, wave counter) | P0 | 8 |
-| Object pooling for enemies and projectiles | P0 | 4 |
-| **Total** | | **~58 hours** |
+| Task | Priority | Status |
+|------|----------|--------|
+| Grid system (TileMap + placement slots) | P0 | DONE |
+| Tower base class + 3 towers (Pulse, Arc, Cryo) | P0 | DONE |
+| Enemy base class + 2 enemies (Swarm, Carrier) | P0 | DONE |
+| A* pathfinding (AStarGrid2D) | P0 | DONE |
+| Wave spawner (10 waves) | P0 | DONE |
+| Relay Core (HP, game over) | P0 | DONE |
+| Scrap economy (earn/spend) | P0 | DONE |
+| Basic HUD (HP, scrap, power, wave counter) | P0 | DONE |
+| Object pooling for enemies and projectiles | P0 | DONE |
 
-**Milestone:** Playable. Answer: "Is this fun?"
+**Milestone:** Playable. COMPLETE.
 
 ---
 
 ## Phase 2: Core Systems — Weeks 3-4
 
-| Task | Priority |
-|------|----------|
-| +3 towers (Data Siphon, Amplifier, Shield Generator) | P0 |
-| +3 enemies (Data Leech, Phantom Burst, Overload Core boss) | P0 |
-| Synergy system (matrix from Phase 0) | P0 |
-| Tower upgrade system (3 levels per run) | P0 |
-| Tower sell mechanic | P1 |
-| Tower targeting priority selection (UI) | P1 |
-| Enemy variety in waves (mixed compositions) | P0 |
-| Balance pass #1 (all data in JSON) | P0 |
+| Task | Priority | Status |
+|------|----------|--------|
+| +3 towers (Scrambler Dish, Prism Beam, Salvage Matrix) | P0 | DONE |
+| +4 enemies (Corrupted Carrier, Mirror Fragment, Null Shield, Phase Leech) | P0 | DONE |
+| +1 enemy (Parasite Packet — healer) | P0 | DONE |
+| +2 bosses (The Choir, Black Relay) | P0 | DONE |
+| Debuff system (Scrambler → enemy armor reduction) | P0 | DONE |
+| Scrap + Power economy (replaces old "resources") | P0 | DONE |
+| Tower upgrade system (3 levels per run) | P0 | DONE |
+| Tower sell mechanic (70% refund) | P0 | DONE |
+| Tower targeting priority selection (UI) | P1 | DONE |
+| 10-wave compositions (9 regular + 1 boss) | P0 | DONE |
+| Balance pass #1 (all data in JSON) | P0 | DONE |
 
-**Milestone:** Full wave gameplay with all towers and enemies.
+**Milestone:** Full wave gameplay with all towers and enemies. COMPLETE.
 
 ---
 
@@ -205,7 +218,7 @@ Boss/Alert:    #AA44FF (purple)
 | Task | Priority |
 |------|----------|
 | Meta-progression: Decoded Transmissions currency | P0 |
-| Tower Blueprints unlock system (start 3, unlock to 10) | P0 |
+| Tower Blueprints unlock system (start 3, unlock to 6) | P0 |
 | Station Upgrades (permanent passive bonuses) | P0 |
 | Transmission Log UI (terminal aesthetic) | P0 |
 | 20 transmissions (not 50 — scale post-launch) | P0 |
@@ -225,7 +238,7 @@ Boss/Alert:    #AA44FF (purple)
 |------|----------|
 | Art style guide (CRT terminal aesthetic, color palette, reference board) | P0 |
 | Tower sprites (6 types x 3 upgrade levels = 18 sprites) | P0 |
-| Enemy sprites (5 types + death/hit animations) | P0 |
+| Enemy sprites (8 types + death/hit animations) | P0 |
 | Grid tileset (floor, walls, paths, spawn points, core) | P0 |
 | Map backgrounds (3-4 sector variants) | P0 |
 | VFX sprites (projectiles, explosions, freeze, lightning, shields) | P0 |
@@ -248,7 +261,7 @@ Boss/Alert:    #AA44FF (purple)
 | UI polish: main menu, settings, pause | P0 |
 | Terminal UI for transmissions (typewriter effect, static) | P0 |
 | Audio integration: placeholders to real assets | P0 |
-| Boss fight polish (Overload Core) | P0 |
+| Boss fight polish (The Choir, Black Relay) | P0 |
 | Run Statistics screen | P1 |
 | Steam Achievements (10-15) | P1 |
 | CRT color variant skins (green/amber/white) | P2 |
@@ -294,14 +307,14 @@ Boss/Alert:    #AA44FF (purple)
 3. "Absolute Zero" — freeze 50 enemies simultaneously
 4. "The Full Picture" — collect all transmissions
 5. "Speedrunner" — complete a run in under 10 minutes
-6. "Pacifist Wave" — survive a wave with Shield Generator only
+6. "Scrap Hoarder" — win a run with 3+ Salvage Matrices
 7. "Synergy Master" — discover all synergy combinations
 8. "Signal Decoded" — reach ending #1
 9. "Truth Revealed" — reach ending #2
 10. "Beyond the Static" — reach ending #3
-11. "Wave 8 Club" — survive all 8 waves
-12. "Overloaded" — defeat the Overload Core boss
-13. "Efficient Operator" — win a run spending under 1000 resources
+11. "Wave 10 Club" — survive all 10 waves
+12. "Silenced the Choir" — defeat The Choir boss
+13. "Efficient Operator" — win a run spending under 1000 scrap
 14. "Tower Hoarder" — have 15+ towers placed simultaneously
 15. "Daily Devotee" — complete 7 daily challenges
 
@@ -318,7 +331,8 @@ Boss/Alert:    #AA44FF (purple)
 - Object pooling for enemies and projectiles from day one
 - Synergy recalculation only on tower place/remove, not per frame
 - CRT shader = single full-screen post-process, not stacked
-- Arc Relay chain: max 5 depth, cached
+- Arc Relay chain: max 5 depth (base 3 + up to 3 from adjacent relays)
+- Prism Beam: uses dot/cross product math for line intersection (no raycasting overhead)
 - All balance calculations in `_physics_process`
 - Profile on Steam Deck in Phase 5
 
@@ -370,6 +384,8 @@ Boss/Alert:    #AA44FF (purple)
 
 ## Next Steps
 
-1. Install Godot 4.3+ on Mac
-2. Complete Phase 0 (pre-production)
-3. Begin Phase 1 (MVP prototype)
+1. ~~Install Godot 4.3+ on Mac~~ DONE (Godot 4.6.1)
+2. ~~Complete Phase 0 (pre-production)~~ DONE
+3. ~~Begin Phase 1 (MVP prototype)~~ DONE
+4. ~~Complete Phase 2 (Core Systems + GDD v2 alignment)~~ DONE
+5. Begin Phase 3 (Roguelike Layer) — reward choices, transmissions, signal charge, run modifiers
