@@ -27,6 +27,7 @@ const SalvageMatrixScript = preload("res://scripts/towers/salvage_matrix.gd")
 const TowerBaseScript = preload("res://scripts/towers/tower_base.gd")
 const TransmissionManagerScript = preload("res://scripts/systems/transmission_manager.gd")
 const TransmissionPanelScript = preload("res://scripts/ui/transmission_panel.gd")
+const CrtOverlayScript = preload("res://scripts/systems/crt_overlay.gd")
 
 
 ## ============================================================================
@@ -57,6 +58,7 @@ var _reward_panel: CanvasLayer
 var _game_over_panel: CanvasLayer
 var _transmission_manager: Node
 var _transmission_panel: CanvasLayer
+var _crt_overlay: CanvasLayer
 
 ## Tower creation
 var _tower_scenes: Dictionary = {}
@@ -152,6 +154,11 @@ func _setup_systems() -> void:
 	_game_over_panel.name = "GameOverPanel"
 	add_child(_game_over_panel)
 
+	## CRT Overlay (post-processing, renders on top of ALL layers)
+	_crt_overlay = CrtOverlayScript.new()
+	_crt_overlay.name = "CRTOverlay"
+	add_child(_crt_overlay)
+
 	## Load tower scenes
 	_tower_scenes["pulse_emitter"] = _create_tower_scene(PulseEmitterScript)
 	_tower_scenes["arc_relay"] = _create_tower_scene(ArcRelayScript)
@@ -185,6 +192,8 @@ func _start_game() -> void:
 	_transmission_manager.reset()
 	RunManager.start_new_run()
 	GameManager.start_run()
+	## Show wave 1 preview at game start
+	_hud.set_wave_preview(_wave_spawner.get_wave_preview(1))
 
 
 func _on_start_wave() -> void:
@@ -192,6 +201,8 @@ func _on_start_wave() -> void:
 	   GameManager.current_phase != GameManager.GamePhase.BETWEEN_WAVES:
 		return
 
+	## Clear wave preview when wave starts
+	_hud.set_wave_preview([])
 	GameManager.start_wave()
 	_wave_spawner.start_wave(GameManager.current_wave)
 
@@ -208,6 +219,13 @@ func _on_wave_cleared() -> void:
 	## If game is over (victory on wave 10), skip reward choice
 	if GameManager.current_phase == GameManager.GamePhase.GAME_OVER:
 		return
+
+	## Set preview for next wave
+	var next_wave := GameManager.current_wave + 1
+	if next_wave <= GameManager.MAX_WAVES:
+		_hud.set_wave_preview(_wave_spawner.get_wave_preview(next_wave))
+	else:
+		_hud.set_wave_preview([])
 
 	## Check for story window (transmission choice before reward)
 	if _transmission_manager.is_story_window(GameManager.current_wave):

@@ -116,6 +116,34 @@ func get_active_enemy_count() -> int:
 	return _active_enemies.size()
 
 
+## Get wave preview info (enemy types + counts) for a given wave.
+## Returns array of { "enemy": "enemy_id", "count": N, "name": "Enemy Name" }
+func get_wave_preview(wave_number: int) -> Array:
+	var wave_key := "wave_%d" % wave_number
+	var wave: Dictionary = _wave_data.get("wave_templates", {}).get(wave_key, {})
+	if wave.is_empty():
+		return []
+	var preview: Array = []
+	var groups: Array = wave.get("groups", [])
+	for group in groups:
+		var enemy_id: String = group.get("enemy", "glitch_swarm")
+		var count: int = group.get("count", 1)
+		## Merge counts for same enemy type
+		var found := false
+		for p in preview:
+			if p["enemy"] == enemy_id:
+				p["count"] += count
+				found = true
+				break
+		if not found:
+			preview.append({
+				"enemy": enemy_id,
+				"count": count,
+				"name": enemy_id.replace("_", " ").capitalize(),
+			})
+	return preview
+
+
 ## Get the reward scrap defined in waves.json for a given wave.
 func get_wave_reward_scrap(wave_number: int) -> int:
 	var wave_key := "wave_%d" % wave_number

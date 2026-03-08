@@ -64,6 +64,7 @@ var _draw_node: Control
 var _selected_tower: Node2D = null  # Currently selected placed tower for info
 var _branch_choices: Array = []  ## Active branch choice options
 var _branch_choosing: bool = false  ## Whether we're showing branch choice UI
+var _wave_preview: Array = []  ## Incoming enemy types for next wave
 
 
 ## ============================================================================
@@ -173,6 +174,12 @@ func hide_tower_info() -> void:
 	_draw_node.queue_redraw()
 
 
+## Set wave preview data (array of { "enemy", "count", "name" }).
+func set_wave_preview(preview: Array) -> void:
+	_wave_preview = preview
+	_draw_node.queue_redraw()
+
+
 ## Show branch choice UI for an upgrade.
 func show_branch_choice(branches: Array) -> void:
 	_branch_choices = branches
@@ -203,6 +210,7 @@ func _on_draw() -> void:
 	_draw_top_bar(vp_size)
 	_draw_tower_panel(vp_size)
 	_draw_phase_indicator(vp_size)
+	_draw_wave_preview(vp_size)
 	_draw_tower_info_panel(vp_size)
 	_draw_corner_frames(vp_size)
 	if _branch_choosing:
@@ -413,6 +421,53 @@ func _draw_phase_indicator(vp_size: Vector2) -> void:
 
 	## Phase text
 	_draw_node.draw_string(font, Vector2(cx - text_half, cy), full_text, HORIZONTAL_ALIGNMENT_LEFT, -1, 13, phase_color)
+
+
+## ── WAVE PREVIEW ────────────────────────────────────────────────────────────
+
+func _draw_wave_preview(vp_size: Vector2) -> void:
+	## Only show during build/between-waves phases when we have preview data
+	if _wave_preview.is_empty():
+		return
+	if GameManager.current_phase != GameManager.GamePhase.BUILD and \
+	   GameManager.current_phase != GameManager.GamePhase.BETWEEN_WAVES:
+		return
+
+	var font := ThemeDB.fallback_font
+	if not font:
+		return
+
+	## Position below phase indicator, centered
+	var y_start := TOP_BAR_H + 32.0
+	var cx := vp_size.x * 0.5
+
+	## Calculate total width for centering
+	var entry_w := 80.0
+	var entry_gap := 6.0
+	var total_w := _wave_preview.size() * entry_w + (_wave_preview.size() - 1) * entry_gap
+	var start_x := cx - total_w * 0.5
+
+	## Label
+	var label := "INCOMING"
+	var label_size := font.get_string_size(label, HORIZONTAL_ALIGNMENT_CENTER, -1, 9)
+	_draw_node.draw_string(font, Vector2(cx - label_size.x * 0.5, y_start), label, HORIZONTAL_ALIGNMENT_LEFT, -1, 9, TEXT_DIM)
+	y_start += 10.0
+
+	## Draw each enemy type as a compact badge
+	for i in _wave_preview.size():
+		var entry: Dictionary = _wave_preview[i]
+		var name_str: String = entry.get("name", "???")
+		var count: int = entry.get("count", 0)
+		var ex := start_x + i * (entry_w + entry_gap)
+		var badge_rect := Rect2(ex, y_start, entry_w, 18)
+
+		## Badge background
+		_draw_node.draw_rect(badge_rect, Color(DANGER_COLOR, 0.08))
+		_draw_node.draw_rect(badge_rect, Color(DANGER_COLOR, 0.25), false, 1.0)
+
+		## Enemy name + count
+		var badge_text := "%s x%d" % [name_str, count]
+		_draw_node.draw_string(font, Vector2(ex + 4, y_start + 13), badge_text, HORIZONTAL_ALIGNMENT_LEFT, -1, 9, Color(DANGER_COLOR, 0.8))
 
 
 ## ── TOWER INFO PANEL ─────────────────────────────────────────────────────────
