@@ -28,6 +28,8 @@ const TowerBaseScript = preload("res://scripts/towers/tower_base.gd")
 const TransmissionManagerScript = preload("res://scripts/systems/transmission_manager.gd")
 const TransmissionPanelScript = preload("res://scripts/ui/transmission_panel.gd")
 const CrtOverlayScript = preload("res://scripts/systems/crt_overlay.gd")
+const ModifierManagerScript = preload("res://scripts/systems/modifier_manager.gd")
+const ModifierSelectionPanelScript = preload("res://scripts/ui/modifier_selection_panel.gd")
 
 
 ## ============================================================================
@@ -62,6 +64,8 @@ var _game_over_panel: CanvasLayer
 var _transmission_manager: Node
 var _transmission_panel: CanvasLayer
 var _crt_overlay: CanvasLayer
+var _modifier_manager: Node
+var _modifier_panel: CanvasLayer
 
 ## Tower creation
 var _tower_scenes: Dictionary = {}
@@ -72,6 +76,9 @@ var _tower_scenes: Dictionary = {}
 ## ============================================================================
 
 func _ready() -> void:
+	## Read sector from RunManager (set by hub terminal)
+	if RunManager.sector_id != "":
+		sector_id = RunManager.sector_id
 	_setup_systems()
 	_connect_signals()
 	_start_game()
@@ -158,6 +165,16 @@ func _setup_systems() -> void:
 	_game_over_panel.name = "GameOverPanel"
 	add_child(_game_over_panel)
 
+	## Modifier Manager
+	_modifier_manager = ModifierManagerScript.new()
+	_modifier_manager.name = "ModifierManager"
+	add_child(_modifier_manager)
+
+	## Modifier Selection Panel (overlay, shown before first wave)
+	_modifier_panel = ModifierSelectionPanelScript.new()
+	_modifier_panel.name = "ModifierPanel"
+	add_child(_modifier_panel)
+
 	## CRT Overlay (post-processing, renders on top of ALL layers)
 	_crt_overlay = CrtOverlayScript.new()
 	_crt_overlay.name = "CRTOverlay"
@@ -185,6 +202,8 @@ func _connect_signals() -> void:
 	_game_over_panel.main_menu_requested.connect(_on_main_menu_requested)
 	_transmission_panel.transmission_selected.connect(_on_transmission_selected)
 	_transmission_panel.transmission_skipped.connect(_on_transmission_skipped)
+	_modifier_panel.modifier_chosen.connect(_on_modifier_chosen)
+	_modifier_panel.modifier_skipped.connect(_on_modifier_skipped)
 
 
 ## ============================================================================
@@ -194,10 +213,12 @@ func _connect_signals() -> void:
 func _start_game() -> void:
 	_reward_system.reset()
 	_transmission_manager.reset()
+	_modifier_manager.reset()
 	RunManager.start_new_run()
 	GameManager.start_run()
-	## Show wave 1 preview at game start
-	_hud.set_wave_preview(_wave_spawner.get_wave_preview(1))
+	## Show modifier selection before first wave
+	var choices: Array[Dictionary] = _modifier_manager.generate_choices()
+	_modifier_panel.show_choices(choices)
 
 
 func _on_start_wave() -> void:
@@ -268,9 +289,30 @@ func _on_reward_selected(reward: Dictionary) -> void:
 	GameManager.finish_reward_choice()
 
 
+func _on_modifier_chosen(modifier_id: String) -> void:
+	_modifier_manager.select_modifier(modifier_id)
+	## Show wave 1 preview after modifier selection
+	_hud.set_wave_preview(_wave_spawner.get_wave_preview(1))
+
+
+func _on_modifier_skipped() -> void:
+	## No modifier — proceed directly to build phase
+	_hud.set_wave_preview(_wave_spawner.get_wave_preview(1))
+
+
 func _on_game_over(victory: bool) -> void:
 	## Determine ending based on truth axes
 	var ending: Dictionary = _transmission_manager.determine_ending(victory)
+
+	## Record run results in MetaManager for persistent progression
+	var currency := 5 + RunManager.waves_survived * 2  ## Base fragments earned
+	if victory:
+		currency += 10
+	MetaManager.record_run_end(RunManager.waves_survived, victory, currency)
+
+	## Unlock any transmissions seen this run
+	for tx_id in RunManager.transmissions_seen:
+		MetaManager.unlock_transmission(tx_id)
 
 	## Short delay before showing game over panel with ending
 	get_tree().create_timer(1.5).timeout.connect(func():
@@ -292,8 +334,14 @@ func _on_main_menu_requested() -> void:
 ## ENEMY SPAWN HANDLING
 ## ============================================================================
 
-func _on_enemy_spawned(_enemy: Node2D) -> void:
-	pass  # Future: connect signals for transmissions, etc.
+func _on_enemy_spawned(enemy: Node2D) -> void:
+	## Apply run modifier effects to enemy (HP, speed, reward multipliers)
+	_modifier_manager.apply_run_effects_to_enemy(enemy)
+
+	## Roll for elite modifier and apply if selected
+	var elite_type: int = _modifier_manager.roll_elite_type(GameManager.current_wave)
+	if elite_type != 0:
+		_modifier_manager.apply_elite_to_enemy(enemy, elite_type)
 
 
 ## ============================================================================
@@ -376,6 +424,10 @@ func _handle_right_click(world_pos: Vector2) -> void:
 func _place_tower(grid_pos: Vector2i, tower_id: String) -> void:
 	var base_cost: int = _get_tower_cost(tower_id)
 	var cost: int = _reward_system.get_discounted_cost(base_cost)
+	## Apply tower cost modifier
+	var cost_mult: float = _modifier_manager.get_effect("tower_cost_multiply", 1.0)
+	if cost_mult != 1.0:
+		cost = int(cost * cost_mult)
 	var p_cost: int = TOWER_POWER_COSTS.get(tower_id, 1)
 
 	## Check scrap
@@ -455,6 +507,11 @@ func _apply_synergies_for(grid_pos: Vector2i) -> void:
 	var damage_mult: float = 1.0 + _reward_system.run_damage_bonus
 	var speed_mult: float = 1.0 + _reward_system.run_speed_bonus
 	var range_mult: float = 1.0 + _reward_system.run_range_bonus
+
+	## Apply run modifier bonuses
+	damage_mult *= _modifier_manager.get_effect("tower_damage_multiply", 1.0)
+	speed_mult *= _modifier_manager.get_effect("tower_attack_speed_multiply", 1.0)
+	range_mult *= _modifier_manager.get_effect("tower_range_multiply", 1.0)
 
 	## Relay node bonus: towers on relay nodes get +15% range
 	if _grid.get_node_type(grid_pos) == GridManagerScript.NodeType.RELAY:

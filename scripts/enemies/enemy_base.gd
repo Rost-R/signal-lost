@@ -12,6 +12,7 @@ extends Node2D
 
 ## Preload scripts to avoid class_name resolution issues
 const GridManagerScript = preload("res://scripts/systems/grid_manager.gd")
+const ModifierManagerScript = preload("res://scripts/systems/modifier_manager.gd")
 
 
 ## ============================================================================
@@ -56,6 +57,11 @@ var _debuff_timer: float = 0.0
 ## Shield (for Corrupted Signal)
 var shield_hp: float = 0.0
 var max_shield: float = 0.0
+
+## Elite modifier state
+var elite_type: int = 0  ## ModifierManagerScript.EliteType enum value
+var encrypted_immunity: bool = false  ## Encrypted: ignore first debuff
+var dodge_chance: float = 0.0  ## Ghosted: chance to dodge attacks
 
 ## Vulnerability multiplier (Fracture Chill: frozen enemies take more damage)
 var _vulnerability_mult: float = 1.0
@@ -159,7 +165,15 @@ func setup(path: PackedVector2Array, wave_mult: float = 1.0) -> void:
 
 
 ## Apply damage, accounting for armor (reduced by debuff), vulnerability, and shields.
-func take_damage(amount: float) -> void:
+## Returns true if damage was applied, false if dodged (Ghosted elite).
+func take_damage(amount: float) -> bool:
+	## Ghosted dodge check
+	if dodge_chance > 0 and randf() < dodge_chance:
+		## Show dodge visual
+		_hit_flash_timer = HIT_FLASH_DURATION * 0.5
+		queue_redraw()
+		return false
+
 	var current_armor := armor * (1.0 - _debuff_percent / 100.0)
 	var effective_damage := maxf(amount - current_armor, 1.0)
 	## Apply vulnerability (Fracture Chill bonus)
@@ -172,7 +186,7 @@ func take_damage(amount: float) -> void:
 			shield_hp -= effective_damage
 			_hit_flash_timer = HIT_FLASH_DURATION
 			queue_redraw()
-			return
+			return true
 		else:
 			effective_damage -= shield_hp
 			shield_hp = 0
@@ -182,6 +196,7 @@ func take_damage(amount: float) -> void:
 
 	if current_hp <= 0:
 		_die()
+	return true
 
 
 ## Apply slow effect (percentage, 0-100).
@@ -199,6 +214,10 @@ func apply_freeze(duration: float, vulnerability: float = 1.0) -> void:
 
 ## Apply armor/resistance debuff from Scrambler Dish.
 func apply_debuff(percent: float, duration: float) -> void:
+	## Encrypted elite: immune to first debuff application
+	if encrypted_immunity:
+		encrypted_immunity = false
+		return
 	_debuff_percent = maxf(_debuff_percent, percent)
 	_debuff_timer = maxf(_debuff_timer, duration)
 
@@ -226,6 +245,9 @@ func on_pool_acquire() -> void:
 	shield_hp = max_shield
 	_slow_percent = 0.0
 	_is_frozen = false
+	elite_type = 0
+	encrypted_immunity = false
+	dodge_chance = 0.0
 
 
 func on_pool_release() -> void:
@@ -325,6 +347,28 @@ func _draw_enemy() -> void:
 	## Shield bar (if has shield)
 	if max_shield > 0:
 		_draw_shield_bar(size)
+
+	## Elite indicator
+	if elite_type != 0:
+		_draw_elite_indicator(size)
+
+
+func _draw_elite_indicator(size: float) -> void:
+	var elite_color := ModifierManagerScript.get_elite_color(elite_type)
+	## Pulsing glow ring around elite enemies
+	var pulse := 0.5 + 0.5 * sin(Time.get_ticks_msec() * 0.005)
+	var ring_alpha := 0.3 + pulse * 0.3
+	draw_arc(Vector2.ZERO, size * 1.5, 0, TAU, 16, Color(elite_color, ring_alpha), 1.5)
+	## Elite type icon at top-right
+	var icon_pos := Vector2(size * 0.8, -size - 14)
+	var icon_char := ""
+	match elite_type:
+		1: icon_char = "E"  ## Encrypted
+		2: icon_char = "O"  ## Overclocked
+		3: icon_char = "G"  ## Ghosted
+	var font := ThemeDB.fallback_font
+	if font and icon_char != "":
+		draw_string(font, icon_pos, icon_char, HORIZONTAL_ALIGNMENT_LEFT, -1, 9, elite_color)
 
 
 func _draw_hp_bar(size: float) -> void:
