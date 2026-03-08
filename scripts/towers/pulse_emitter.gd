@@ -21,6 +21,22 @@ const UPGRADE_DATA := [
 	{ "damage": 65.0, "attack_speed": 1.6, "range": 4.5, "cost": 110 },
 ]
 
+## Branch upgrade paths (chosen at level 2)
+const BRANCH_DATA := {
+	"a": {
+		"name": "Precision Pulse",
+		"description": "+DMG, +Range. High single-target burst.",
+		"level_2": { "damage": 45.0, "attack_speed": 1.3, "range": 4.5, "cost": 80 },
+		"level_3": { "damage": 80.0, "attack_speed": 1.4, "range": 5.0, "cost": 110 },
+	},
+	"b": {
+		"name": "Burst Pulse",
+		"description": "+Speed, -DMG per hit. Rapid-fire DPS.",
+		"level_2": { "damage": 28.0, "attack_speed": 2.2, "range": 3.5, "cost": 80 },
+		"level_3": { "damage": 38.0, "attack_speed": 3.0, "range": 4.0, "cost": 110 },
+	},
+}
+
 ## Visual — beam flash duration
 const BEAM_FLASH_DURATION := 0.1
 var _beam_flash_timer: float = 0.0
@@ -74,23 +90,47 @@ func _attack(target: Node2D) -> void:
 
 func _get_level_stats() -> Dictionary:
 	if level <= 1:
+		return { "damage": base_damage, "attack_speed": base_attack_speed, "range": base_range }
+	## Use branch data if a branch was chosen
+	if upgrade_branch != "":
+		var key := "level_%d" % level
+		var data: Dictionary = BRANCH_DATA[upgrade_branch].get(key, {})
 		return {
-			"damage": base_damage,
-			"attack_speed": base_attack_speed,
-			"range": base_range
+			"damage": data.get("damage", base_damage),
+			"attack_speed": data.get("attack_speed", base_attack_speed),
+			"range": data.get("range", base_range),
 		}
+	## Fallback to linear upgrades
 	var data: Dictionary = UPGRADE_DATA[level - 1]
 	return {
 		"damage": data.get("damage", base_damage),
 		"attack_speed": data.get("attack_speed", base_attack_speed),
-		"range": data.get("range", base_range)
+		"range": data.get("range", base_range),
 	}
 
 
 func _get_upgrade_cost(target_level: int) -> int:
+	if upgrade_branch != "":
+		return _get_branch_upgrade_cost(upgrade_branch, target_level)
 	if target_level <= 1 or target_level > UPGRADE_DATA.size():
 		return base_cost
 	return UPGRADE_DATA[target_level - 1].get("cost", base_cost)
+
+
+func _has_branches() -> bool:
+	return true
+
+
+func _get_branch_info() -> Array:
+	return [
+		{ "id": "a", "name": BRANCH_DATA["a"]["name"], "description": BRANCH_DATA["a"]["description"], "cost": BRANCH_DATA["a"]["level_2"]["cost"] },
+		{ "id": "b", "name": BRANCH_DATA["b"]["name"], "description": BRANCH_DATA["b"]["description"], "cost": BRANCH_DATA["b"]["level_2"]["cost"] },
+	]
+
+
+func _get_branch_upgrade_cost(branch_id: String, target_level: int) -> int:
+	var key := "level_%d" % target_level
+	return BRANCH_DATA.get(branch_id, {}).get(key, {}).get("cost", base_cost)
 
 
 ## ============================================================================

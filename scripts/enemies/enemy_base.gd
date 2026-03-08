@@ -57,6 +57,9 @@ var _debuff_timer: float = 0.0
 var shield_hp: float = 0.0
 var max_shield: float = 0.0
 
+## Vulnerability multiplier (Fracture Chill: frozen enemies take more damage)
+var _vulnerability_mult: float = 1.0
+
 ## Visual
 var _hit_flash_timer: float = 0.0
 const HIT_FLASH_DURATION := 0.08
@@ -76,6 +79,7 @@ func _physics_process(delta: float) -> void:
 		_freeze_timer -= delta
 		if _freeze_timer <= 0:
 			_is_frozen = false
+			_vulnerability_mult = 1.0  ## Reset vulnerability when unfreeze
 		else:
 			queue_redraw()
 			return  # Frozen — don't move
@@ -149,10 +153,13 @@ func setup(path: PackedVector2Array, wave_mult: float = 1.0) -> void:
 	add_to_group("enemies")
 
 
-## Apply damage, accounting for armor (reduced by debuff) and shields.
+## Apply damage, accounting for armor (reduced by debuff), vulnerability, and shields.
 func take_damage(amount: float) -> void:
 	var current_armor := armor * (1.0 - _debuff_percent / 100.0)
 	var effective_damage := maxf(amount - current_armor, 1.0)
+	## Apply vulnerability (Fracture Chill bonus)
+	if _vulnerability_mult > 1.0:
+		effective_damage *= _vulnerability_mult
 
 	## Shield absorbs first
 	if shield_hp > 0:
@@ -177,10 +184,12 @@ func apply_slow(percent: float) -> void:
 	_slow_percent = maxf(_slow_percent, percent)  # Take strongest slow
 
 
-## Apply freeze effect.
-func apply_freeze(duration: float) -> void:
+## Apply freeze effect with optional vulnerability bonus (Fracture Chill).
+func apply_freeze(duration: float, vulnerability: float = 1.0) -> void:
 	_is_frozen = true
 	_freeze_timer = duration
+	if vulnerability > 1.0:
+		_vulnerability_mult = maxf(_vulnerability_mult, vulnerability)
 
 
 ## Apply armor/resistance debuff from Scrambler Dish.
@@ -224,6 +233,7 @@ func on_pool_release() -> void:
 
 func _die() -> void:
 	GameManager.add_scrap(reward)
+	GameManager.add_signal_charge(GameManager.CHARGE_PER_KILL)
 	RunManager.enemies_killed += 1
 	RunManager.scrap_earned += reward
 	enemy_died.emit(self)

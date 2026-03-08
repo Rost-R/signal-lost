@@ -25,6 +25,8 @@ const ScramblerDishScript = preload("res://scripts/towers/scrambler_dish.gd")
 const PrismBeamScript = preload("res://scripts/towers/prism_beam.gd")
 const SalvageMatrixScript = preload("res://scripts/towers/salvage_matrix.gd")
 const TowerBaseScript = preload("res://scripts/towers/tower_base.gd")
+const TransmissionManagerScript = preload("res://scripts/systems/transmission_manager.gd")
+const TransmissionPanelScript = preload("res://scripts/ui/transmission_panel.gd")
 
 
 ## ============================================================================
@@ -53,6 +55,8 @@ var _hud: CanvasLayer
 var _reward_system: Node
 var _reward_panel: CanvasLayer
 var _game_over_panel: CanvasLayer
+var _transmission_manager: Node
+var _transmission_panel: CanvasLayer
 
 ## Tower creation
 var _tower_scenes: Dictionary = {}
@@ -133,6 +137,16 @@ func _setup_systems() -> void:
 	_reward_panel.name = "RewardPanel"
 	add_child(_reward_panel)
 
+	## Transmission Manager
+	_transmission_manager = TransmissionManagerScript.new()
+	_transmission_manager.name = "TransmissionManager"
+	add_child(_transmission_manager)
+
+	## Transmission Panel (overlay)
+	_transmission_panel = TransmissionPanelScript.new()
+	_transmission_panel.name = "TransmissionPanel"
+	add_child(_transmission_panel)
+
 	## Game Over Panel (overlay, on top of everything)
 	_game_over_panel = GameOverPanelScript.new()
 	_game_over_panel.name = "GameOverPanel"
@@ -151,12 +165,15 @@ func _connect_signals() -> void:
 	_hud.start_wave_pressed.connect(_on_start_wave)
 	_hud.tower_upgrade_requested.connect(_on_tower_upgrade_requested)
 	_hud.tower_sell_requested.connect(_on_tower_sell_requested)
+	_hud.branch_selected.connect(_on_branch_selected)
 	_wave_spawner.wave_enemies_cleared.connect(_on_wave_cleared)
 	_wave_spawner.enemy_spawned.connect(_on_enemy_spawned)
 	GameManager.game_over.connect(_on_game_over)
 	_reward_panel.reward_selected.connect(_on_reward_selected)
 	_game_over_panel.restart_requested.connect(_on_restart_requested)
 	_game_over_panel.main_menu_requested.connect(_on_main_menu_requested)
+	_transmission_panel.transmission_selected.connect(_on_transmission_selected)
+	_transmission_panel.transmission_skipped.connect(_on_transmission_skipped)
 
 
 ## ============================================================================
@@ -165,6 +182,7 @@ func _connect_signals() -> void:
 
 func _start_game() -> void:
 	_reward_system.reset()
+	_transmission_manager.reset()
 	RunManager.start_new_run()
 	GameManager.start_run()
 
@@ -191,6 +209,17 @@ func _on_wave_cleared() -> void:
 	if GameManager.current_phase == GameManager.GamePhase.GAME_OVER:
 		return
 
+	## Check for story window (transmission choice before reward)
+	if _transmission_manager.is_story_window(GameManager.current_wave):
+		var tx_choices: Array = _transmission_manager.generate_choices(GameManager.current_wave)
+		if not tx_choices.is_empty():
+			_transmission_panel.show_choices(tx_choices)
+			return  ## Wait for transmission selection before showing rewards
+
+	_show_reward_choices()
+
+
+func _show_reward_choices() -> void:
 	## Detect flawless wave (no core damage taken this wave)
 	var was_flawless: bool = GameManager.core_hp >= GameManager.core_hp_before_wave
 
@@ -199,6 +228,17 @@ func _on_wave_cleared() -> void:
 		GameManager.current_wave, was_flawless
 	)
 	_reward_panel.show_choices(choices)
+
+
+func _on_transmission_selected(transmission: Dictionary) -> void:
+	var tx_id: String = transmission.get("tx_id", "")
+	if tx_id != "":
+		_transmission_manager.select_transmission(tx_id)
+	_show_reward_choices()
+
+
+func _on_transmission_skipped() -> void:
+	_show_reward_choices()
 
 
 func _on_reward_selected(reward: Dictionary) -> void:
@@ -239,9 +279,26 @@ var _selected_tower_pos: Vector2i = Vector2i(-1, -1)
 
 func _on_tower_upgrade_requested() -> void:
 	var tower: Node2D = _grid.get_tower_at(_selected_tower_pos)
-	if tower and tower.has_method("upgrade"):
-		tower.upgrade()
+	if not tower or not tower.has_method("upgrade"):
+		return
+	## Connect branch choice signal if tower has branches (one-shot)
+	if tower.has_method("_has_branches") and tower._has_branches() and tower.level == 1:
+		if not tower.branch_choice_needed.is_connected(_on_branch_choice_needed):
+			tower.branch_choice_needed.connect(_on_branch_choice_needed, CONNECT_ONE_SHOT)
+	tower.upgrade()
+	_recalculate_synergies(_selected_tower_pos)
+
+
+func _on_branch_choice_needed(_tower: Node2D, branches: Array) -> void:
+	_hud.show_branch_choice(branches)
+
+
+func _on_branch_selected(branch_id: String) -> void:
+	var tower: Node2D = _grid.get_tower_at(_selected_tower_pos)
+	if tower and tower.has_method("upgrade_with_branch"):
+		tower.upgrade_with_branch(branch_id)
 		_recalculate_synergies(_selected_tower_pos)
+		_hud.show_tower_info(tower)  ## Refresh info panel
 
 
 func _on_tower_sell_requested() -> void:

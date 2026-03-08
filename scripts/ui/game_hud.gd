@@ -20,6 +20,7 @@ signal tower_type_selected(tower_id: String)
 signal start_wave_pressed()
 signal tower_upgrade_requested()
 signal tower_sell_requested()
+signal branch_selected(branch_id: String)
 
 
 ## ============================================================================
@@ -51,6 +52,8 @@ var selected_tower_index: int = -1
 var _info_panel: Control
 var _draw_node: Control
 var _selected_tower: Node2D = null  # Currently selected placed tower for info
+var _branch_choices: Array = []  ## Active branch choice options
+var _branch_choosing: bool = false  ## Whether we're showing branch choice UI
 
 
 ## ============================================================================
@@ -71,10 +74,32 @@ func _ready() -> void:
 	GameManager.wave_started.connect(func(_v: int): _draw_node.queue_redraw())
 	GameManager.wave_completed.connect(func(_v: int): _draw_node.queue_redraw())
 	GameManager.game_phase_changed.connect(func(_v: GameManager.GamePhase): _draw_node.queue_redraw())
+	GameManager.signal_charge_changed.connect(func(_c: float, _m: float): _draw_node.queue_redraw())
 
 
 func _unhandled_input(event: InputEvent) -> void:
 	if event is InputEventKey and event.pressed:
+		## Branch choice mode intercepts 1/2 keys
+		if _branch_choosing:
+			match event.keycode:
+				KEY_1:
+					if _branch_choices.size() >= 1:
+						branch_selected.emit(_branch_choices[0].id)
+						_branch_choosing = false
+						_branch_choices = []
+						_draw_node.queue_redraw()
+				KEY_2:
+					if _branch_choices.size() >= 2:
+						branch_selected.emit(_branch_choices[1].id)
+						_branch_choosing = false
+						_branch_choices = []
+						_draw_node.queue_redraw()
+				KEY_ESCAPE:
+					_branch_choosing = false
+					_branch_choices = []
+					_draw_node.queue_redraw()
+			return
+
 		## Tower selection via number keys
 		match event.keycode:
 			KEY_1:
@@ -125,12 +150,23 @@ func get_selected_tower_id() -> String:
 ## Show info panel for a placed tower.
 func show_tower_info(tower: Node2D) -> void:
 	_selected_tower = tower
+	_branch_choosing = false
+	_branch_choices = []
 	_draw_node.queue_redraw()
 
 
 ## Hide the tower info panel.
 func hide_tower_info() -> void:
 	_selected_tower = null
+	_branch_choosing = false
+	_branch_choices = []
+	_draw_node.queue_redraw()
+
+
+## Show branch choice UI for an upgrade.
+func show_branch_choice(branches: Array) -> void:
+	_branch_choices = branches
+	_branch_choosing = true
 	_draw_node.queue_redraw()
 
 
@@ -159,6 +195,8 @@ func _on_draw() -> void:
 	_draw_phase_indicator(vp_size)
 	_draw_wave_info(vp_size)
 	_draw_tower_info_panel(vp_size)
+	if _branch_choosing:
+		_draw_branch_choice(vp_size)
 
 
 func _draw_top_bar(vp_size: Vector2) -> void:
@@ -190,6 +228,24 @@ func _draw_top_bar(vp_size: Vector2) -> void:
 
 	## Wave
 	_draw_node.draw_string(font, Vector2(530, 22), "WAVE: %d/%d" % [GameManager.current_wave, GameManager.MAX_WAVES], HORIZONTAL_ALIGNMENT_LEFT, -1, 14, TEXT_COLOR)
+
+	## Signal Charge meter
+	var charge_x := 680.0
+	var charge_w := 120.0
+	var charge_h := 10.0
+	var charge_y := 11.0
+	var charge_ratio := GameManager.signal_charge / GameManager.signal_charge_max
+	## Background
+	_draw_node.draw_rect(Rect2(charge_x, charge_y, charge_w, charge_h), Color(0.15, 0.15, 0.15, 0.8))
+	## Fill — amber/gold color
+	var charge_color := Color(1, 0.72, 0)
+	if charge_ratio >= 1.0:
+		charge_color = Color(1, 0.9, 0.3)  ## Bright when full
+	_draw_node.draw_rect(Rect2(charge_x, charge_y, charge_w * charge_ratio, charge_h), charge_color)
+	## Border
+	_draw_node.draw_rect(Rect2(charge_x, charge_y, charge_w, charge_h), BORDER_COLOR, false, 1.0)
+	## Label
+	_draw_node.draw_string(font, Vector2(charge_x, charge_y + charge_h + 14), "SIG: %d%%" % int(charge_ratio * 100), HORIZONTAL_ALIGNMENT_LEFT, -1, 10, charge_color)
 
 
 func _draw_tower_panel(vp_size: Vector2) -> void:
@@ -310,9 +366,13 @@ func _draw_tower_info_panel(vp_size: Vector2) -> void:
 	_draw_node.draw_string(font, Vector2(x, y), t_name, HORIZONTAL_ALIGNMENT_LEFT, -1, 14, t_color)
 	y += 18
 
-	## Level
+	## Level + branch name
 	var t_level: int = _selected_tower.level if "level" in _selected_tower else 1
-	_draw_node.draw_string(font, Vector2(x, y), "Level: %d/3" % t_level, HORIZONTAL_ALIGNMENT_LEFT, -1, 11, TEXT_COLOR)
+	var branch_name: String = _selected_tower.get_branch_name() if _selected_tower.has_method("get_branch_name") else ""
+	if branch_name != "":
+		_draw_node.draw_string(font, Vector2(x, y), "Lv%d — %s" % [t_level, branch_name], HORIZONTAL_ALIGNMENT_LEFT, -1, 11, TEXT_COLOR)
+	else:
+		_draw_node.draw_string(font, Vector2(x, y), "Level: %d/3" % t_level, HORIZONTAL_ALIGNMENT_LEFT, -1, 11, TEXT_COLOR)
 	y += 16
 
 	## Damage (if applicable)
@@ -346,3 +406,53 @@ func _draw_tower_info_panel(vp_size: Vector2) -> void:
 	## Sell button
 	var sell_val: int = _selected_tower.get_sell_value() if _selected_tower.has_method("get_sell_value") else 0
 	_draw_node.draw_string(font, Vector2(x, y), "[X] Sell +$%d" % sell_val, HORIZONTAL_ALIGNMENT_LEFT, -1, 11, WARNING_COLOR)
+
+
+func _draw_branch_choice(vp_size: Vector2) -> void:
+	var font := ThemeDB.fallback_font
+	if not font or _branch_choices.is_empty():
+		return
+
+	## Semi-transparent overlay behind branch panel
+	_draw_node.draw_rect(Rect2(Vector2.ZERO, vp_size), Color(0, 0, 0, 0.3))
+
+	## Center panel
+	var panel_w := 320.0
+	var panel_h := 180.0
+	var panel_x := (vp_size.x - panel_w) * 0.5
+	var panel_y := (vp_size.y - panel_h) * 0.5 - 30
+	var panel_rect := Rect2(panel_x, panel_y, panel_w, panel_h)
+
+	_draw_node.draw_rect(panel_rect, PANEL_COLOR)
+	_draw_node.draw_rect(panel_rect, Color(0, 1, 0.53, 0.5), false, 1.5)
+
+	var x := panel_x + 16
+	var y := panel_y + 24
+
+	## Title
+	_draw_node.draw_string(font, Vector2(x, y), "CHOOSE UPGRADE PATH", HORIZONTAL_ALIGNMENT_LEFT, -1, 14, ACCENT_COLOR)
+	y += 24
+
+	## Draw each branch option
+	for i in _branch_choices.size():
+		var branch: Dictionary = _branch_choices[i]
+		var key := str(i + 1)
+		var cost: int = branch.get("cost", 0)
+		var can_afford: bool = GameManager.scrap >= cost
+		var name_col: Color = ACCENT_COLOR if can_afford else Color(0.4, 0.4, 0.4)
+		var desc_col: Color = TEXT_COLOR if can_afford else Color(0.3, 0.3, 0.3)
+
+		## Option box
+		var opt_rect := Rect2(x, y - 12, panel_w - 32, 52)
+		_draw_node.draw_rect(opt_rect, Color(ACCENT_COLOR, 0.05))
+		_draw_node.draw_rect(opt_rect, Color(ACCENT_COLOR, 0.2), false, 1.0)
+
+		## [1] Branch Name — $cost
+		_draw_node.draw_string(font, Vector2(x + 8, y + 4), "[%s] %s — $%d" % [key, branch.get("name", "???"), cost], HORIZONTAL_ALIGNMENT_LEFT, -1, 13, name_col)
+		## Description
+		_draw_node.draw_string(font, Vector2(x + 8, y + 22), branch.get("description", ""), HORIZONTAL_ALIGNMENT_LEFT, -1, 10, desc_col)
+
+		y += 60
+
+	## ESC to cancel
+	_draw_node.draw_string(font, Vector2(x, y + 4), "[ESC] Cancel", HORIZONTAL_ALIGNMENT_LEFT, -1, 10, Color(0.5, 0.5, 0.5))

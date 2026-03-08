@@ -23,6 +23,7 @@ signal wave_started(wave_number: int)
 signal wave_completed(wave_number: int)
 signal game_over(victory: bool)
 signal game_phase_changed(phase: GamePhase)
+signal signal_charge_changed(charge: float, max_charge: float)
 
 
 ## ============================================================================
@@ -83,6 +84,13 @@ var default_target_priority: TargetPriority = TargetPriority.FIRST
 ## Tracks core HP at wave start to detect flawless waves (no damage taken).
 var core_hp_before_wave: int = STARTING_CORE_HP
 
+## Signal Charge — fills during combat, spends on resonance abilities.
+var signal_charge: float = 0.0
+var signal_charge_max: float = 100.0
+const CHARGE_PER_ATTACK := 0.5      ## Charge gained per tower attack
+const CHARGE_PER_KILL := 3.0        ## Charge gained per enemy kill
+const CHARGE_PER_WAVE_CLEAR := 10.0 ## Charge gained when wave clears
+
 
 ## ============================================================================
 ## LIFECYCLE
@@ -106,6 +114,7 @@ func reset() -> void:
 	current_phase = GamePhase.BUILD
 	is_running = false
 	core_hp_before_wave = STARTING_CORE_HP
+	signal_charge = 0.0
 
 
 ## Start a new run with optional modifier adjustments.
@@ -131,6 +140,7 @@ func start_wave() -> void:
 ## Non-boss waves transition to REWARD_CHOICE; boss wave = victory.
 func complete_wave() -> void:
 	RunManager.waves_survived = current_wave
+	add_signal_charge(CHARGE_PER_WAVE_CLEAR)
 	wave_completed.emit(current_wave)
 	if current_wave >= MAX_WAVES:
 		_trigger_game_over(true)
@@ -179,6 +189,21 @@ func use_power(cost: int) -> bool:
 func release_power(cost: int) -> void:
 	power_used = max(0, power_used - cost)
 	power_changed.emit(power_used, power_cap)
+
+
+## Add signal charge (from combat events).
+func add_signal_charge(amount: float) -> void:
+	signal_charge = clampf(signal_charge + amount, 0.0, signal_charge_max)
+	signal_charge_changed.emit(signal_charge, signal_charge_max)
+
+
+## Spend signal charge (on resonance abilities). Returns false if insufficient.
+func spend_signal_charge(amount: float) -> bool:
+	if signal_charge >= amount:
+		signal_charge -= amount
+		signal_charge_changed.emit(signal_charge, signal_charge_max)
+		return true
+	return false
 
 
 ## ============================================================================

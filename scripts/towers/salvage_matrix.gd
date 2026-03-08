@@ -23,6 +23,22 @@ const UPGRADE_DATA := [
 	{ "bonus_scrap": 6, "passive_income": 10, "range": 4.0, "cost": 175 },
 ]
 
+## Branch upgrade paths
+const BRANCH_DATA := {
+	"a": {
+		"name": "Salvage Drone",
+		"description": "+Scrap per kill, +Passive income. Max greed.",
+		"level_2": { "bonus_scrap": 5, "passive_income": 8, "range": 3.5, "cost": 130 },
+		"level_3": { "bonus_scrap": 8, "passive_income": 14, "range": 4.0, "cost": 175 },
+	},
+	"b": {
+		"name": "Power Redistributor",
+		"description": "+1 Power cap per level. Less scrap.",
+		"level_2": { "bonus_scrap": 3, "passive_income": 4, "range": 3.5, "power_cap_bonus": 1, "cost": 130 },
+		"level_3": { "bonus_scrap": 4, "passive_income": 6, "range": 4.0, "power_cap_bonus": 2, "cost": 175 },
+	},
+}
+
 const PULSE_DURATION := 0.3
 
 ## ============================================================================
@@ -33,6 +49,7 @@ var base_bonus_scrap: int = 2      # Extra scrap per kill in range
 var base_passive_income: int = 3   # Scrap earned between waves
 var _pulse_timer: float = 0.0
 var _total_scrap_earned: int = 0
+var _power_cap_bonus_applied: int = 0  ## Track how much power cap we've added
 
 
 ## ============================================================================
@@ -115,6 +132,9 @@ func _on_wave_completed(_wave_number: int) -> void:
 func _get_effective_bonus_scrap() -> int:
 	if level <= 1:
 		return base_bonus_scrap
+	if upgrade_branch != "":
+		var key := "level_%d" % level
+		return BRANCH_DATA.get(upgrade_branch, {}).get(key, {}).get("bonus_scrap", base_bonus_scrap)
 	return UPGRADE_DATA[level - 1].get("bonus_scrap", base_bonus_scrap)
 
 
@@ -122,28 +142,77 @@ func _get_effective_bonus_scrap() -> int:
 func _get_effective_passive_income() -> int:
 	if level <= 1:
 		return base_passive_income
+	if upgrade_branch != "":
+		var key := "level_%d" % level
+		return BRANCH_DATA.get(upgrade_branch, {}).get(key, {}).get("passive_income", base_passive_income)
 	return UPGRADE_DATA[level - 1].get("passive_income", base_passive_income)
+
+
+## Apply or update power cap bonus (Power Redistributor branch).
+func _update_power_cap_bonus() -> void:
+	var target_bonus := 0
+	if upgrade_branch == "b" and level >= 2:
+		var key := "level_%d" % level
+		target_bonus = BRANCH_DATA["b"].get(key, {}).get("power_cap_bonus", 0)
+	var delta_bonus := target_bonus - _power_cap_bonus_applied
+	if delta_bonus != 0:
+		GameManager.power_cap += delta_bonus
+		_power_cap_bonus_applied = target_bonus
+
+
+## Remove power cap bonus when tower is sold/freed.
+func _remove_power_cap_bonus() -> void:
+	if _power_cap_bonus_applied > 0:
+		GameManager.power_cap -= _power_cap_bonus_applied
+		_power_cap_bonus_applied = 0
 
 
 ## ============================================================================
 ## STATS
 ## ============================================================================
 
+func recalculate_stats() -> void:
+	super.recalculate_stats()
+	_update_power_cap_bonus()
+
+
 func _get_level_stats() -> Dictionary:
 	var r := base_range
-	if level > 1 and level <= UPGRADE_DATA.size():
-		r = UPGRADE_DATA[level - 1].get("range", base_range)
-	return {
-		"damage": 0.0,
-		"attack_speed": 0.0,
-		"range": r
-	}
+	if level > 1:
+		if upgrade_branch != "":
+			var key := "level_%d" % level
+			r = BRANCH_DATA.get(upgrade_branch, {}).get(key, {}).get("range", base_range)
+		elif level <= UPGRADE_DATA.size():
+			r = UPGRADE_DATA[level - 1].get("range", base_range)
+	return { "damage": 0.0, "attack_speed": 0.0, "range": r }
 
 
 func _get_upgrade_cost(target_level: int) -> int:
+	if upgrade_branch != "":
+		return _get_branch_upgrade_cost(upgrade_branch, target_level)
 	if target_level <= 1 or target_level > UPGRADE_DATA.size():
 		return base_cost
 	return UPGRADE_DATA[target_level - 1].get("cost", base_cost)
+
+
+func _has_branches() -> bool:
+	return true
+
+
+func _get_branch_info() -> Array:
+	return [
+		{ "id": "a", "name": BRANCH_DATA["a"]["name"], "description": BRANCH_DATA["a"]["description"], "cost": BRANCH_DATA["a"]["level_2"]["cost"] },
+		{ "id": "b", "name": BRANCH_DATA["b"]["name"], "description": BRANCH_DATA["b"]["description"], "cost": BRANCH_DATA["b"]["level_2"]["cost"] },
+	]
+
+
+func _get_branch_upgrade_cost(branch_id: String, target_level: int) -> int:
+	var key := "level_%d" % target_level
+	return BRANCH_DATA.get(branch_id, {}).get(key, {}).get("cost", base_cost)
+
+
+func _exit_tree() -> void:
+	_remove_power_cap_bonus()
 
 
 ## ============================================================================

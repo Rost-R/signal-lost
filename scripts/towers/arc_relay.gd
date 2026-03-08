@@ -22,7 +22,23 @@ const UPGRADE_DATA := [
 	{ "damage": 30.0, "attack_speed": 1.0, "range": 3.0, "chain_count": 5, "cost": 155 },
 ]
 
-const MAX_CHAIN_DEPTH := 5
+## Branch upgrade paths
+const BRANCH_DATA := {
+	"a": {
+		"name": "Long Arc",
+		"description": "+Range, +DMG. Fewer chains but hits harder.",
+		"level_2": { "damage": 25.0, "attack_speed": 0.9, "range": 4.0, "chain_count": 3, "cost": 110 },
+		"level_3": { "damage": 38.0, "attack_speed": 1.0, "range": 5.0, "chain_count": 4, "cost": 155 },
+	},
+	"b": {
+		"name": "Feedback Arc",
+		"description": "+Chains, less falloff. Swarm shredder.",
+		"level_2": { "damage": 18.0, "attack_speed": 0.9, "range": 3.0, "chain_count": 5, "chain_falloff": 0.85, "cost": 110 },
+		"level_3": { "damage": 25.0, "attack_speed": 1.0, "range": 3.0, "chain_count": 7, "chain_falloff": 0.9, "cost": 155 },
+	},
+}
+
+const MAX_CHAIN_DEPTH := 7  ## Increased to allow Feedback Arc level 3
 const CHAIN_RANGE_PX := 128.0  # 2 cells
 const CHAIN_DAMAGE_FALLOFF := 0.8
 const CHAIN_FLASH_DURATION := 0.15
@@ -76,12 +92,13 @@ func _attack(target: Node2D) -> void:
 	_chain_points.append(target.global_position - global_position)
 
 	## Chain to nearby enemies
+	var falloff := _get_effective_chain_falloff()
 	var current_pos: Vector2 = target.global_position
 	for i in chain_count:
 		var next := _find_chain_target(current_pos, hit_enemies)
 		if not next:
 			break
-		damage *= CHAIN_DAMAGE_FALLOFF
+		damage *= falloff
 		if next.has_method("take_damage"):
 			next.take_damage(damage)
 		hit_enemies.append(next)
@@ -111,9 +128,21 @@ func _find_chain_target(from_pos: Vector2, exclude: Array[Node2D]) -> Node2D:
 ## Get total chain count (base + level + synergy bonus, capped).
 func _get_effective_chain_count() -> int:
 	var base := base_chain_count
-	if level >= 2 and level <= UPGRADE_DATA.size():
-		base = UPGRADE_DATA[level - 1].get("chain_count", base_chain_count)
+	if level >= 2:
+		if upgrade_branch != "":
+			var key := "level_%d" % level
+			base = BRANCH_DATA.get(upgrade_branch, {}).get(key, {}).get("chain_count", base_chain_count)
+		elif level <= UPGRADE_DATA.size():
+			base = UPGRADE_DATA[level - 1].get("chain_count", base_chain_count)
 	return mini(base + _chain_bonus, MAX_CHAIN_DEPTH)
+
+
+## Get chain damage falloff (branch b has reduced falloff).
+func _get_effective_chain_falloff() -> float:
+	if upgrade_branch != "" and level >= 2:
+		var key := "level_%d" % level
+		return BRANCH_DATA.get(upgrade_branch, {}).get(key, {}).get("chain_falloff", CHAIN_DAMAGE_FALLOFF)
+	return CHAIN_DAMAGE_FALLOFF
 
 
 ## Called by synergy calculator to set chain bonus from adjacent Arc Relays.
@@ -127,23 +156,45 @@ func set_chain_bonus(bonus: int) -> void:
 
 func _get_level_stats() -> Dictionary:
 	if level <= 1:
+		return { "damage": base_damage, "attack_speed": base_attack_speed, "range": base_range }
+	if upgrade_branch != "":
+		var key := "level_%d" % level
+		var data: Dictionary = BRANCH_DATA[upgrade_branch].get(key, {})
 		return {
-			"damage": base_damage,
-			"attack_speed": base_attack_speed,
-			"range": base_range
+			"damage": data.get("damage", base_damage),
+			"attack_speed": data.get("attack_speed", base_attack_speed),
+			"range": data.get("range", base_range),
 		}
 	var data: Dictionary = UPGRADE_DATA[level - 1]
 	return {
 		"damage": data.get("damage", base_damage),
 		"attack_speed": data.get("attack_speed", base_attack_speed),
-		"range": data.get("range", base_range)
+		"range": data.get("range", base_range),
 	}
 
 
 func _get_upgrade_cost(target_level: int) -> int:
+	if upgrade_branch != "":
+		return _get_branch_upgrade_cost(upgrade_branch, target_level)
 	if target_level <= 1 or target_level > UPGRADE_DATA.size():
 		return base_cost
 	return UPGRADE_DATA[target_level - 1].get("cost", base_cost)
+
+
+func _has_branches() -> bool:
+	return true
+
+
+func _get_branch_info() -> Array:
+	return [
+		{ "id": "a", "name": BRANCH_DATA["a"]["name"], "description": BRANCH_DATA["a"]["description"], "cost": BRANCH_DATA["a"]["level_2"]["cost"] },
+		{ "id": "b", "name": BRANCH_DATA["b"]["name"], "description": BRANCH_DATA["b"]["description"], "cost": BRANCH_DATA["b"]["level_2"]["cost"] },
+	]
+
+
+func _get_branch_upgrade_cost(branch_id: String, target_level: int) -> int:
+	var key := "level_%d" % target_level
+	return BRANCH_DATA.get(branch_id, {}).get(key, {}).get("cost", base_cost)
 
 
 ## ============================================================================

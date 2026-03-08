@@ -24,6 +24,22 @@ const UPGRADE_DATA := [
 	{ "slow_percent": 70.0, "range": 3.5, "freeze_duration": 2.5, "cost": 130 },
 ]
 
+## Branch upgrade paths
+const BRANCH_DATA := {
+	"a": {
+		"name": "Deep Freeze",
+		"description": "+Slow%, +Freeze duration. Long lockdown.",
+		"level_2": { "slow_percent": 60.0, "range": 2.8, "freeze_duration": 2.5, "freeze_threshold": 2.5, "cost": 95 },
+		"level_3": { "slow_percent": 80.0, "range": 3.0, "freeze_duration": 3.5, "freeze_threshold": 2.0, "cost": 130 },
+	},
+	"b": {
+		"name": "Fracture Chill",
+		"description": "Frozen enemies take +50% DMG from all sources.",
+		"level_2": { "slow_percent": 50.0, "range": 3.0, "freeze_duration": 1.5, "shatter_bonus": 1.3, "cost": 95 },
+		"level_3": { "slow_percent": 60.0, "range": 3.5, "freeze_duration": 2.0, "shatter_bonus": 1.5, "cost": 130 },
+	},
+}
+
 const FREEZE_THRESHOLD := 3.0  # Seconds of continuous slow before freeze
 
 
@@ -33,6 +49,7 @@ const FREEZE_THRESHOLD := 3.0  # Seconds of continuous slow before freeze
 
 var base_slow_percent: float = 40.0
 var base_freeze_duration: float = 1.5
+var shatter_bonus: float = 0.0  ## Fracture Chill branch: extra damage multiplier on frozen
 
 ## Track how long each enemy has been in range (for freeze threshold).
 var _enemy_exposure: Dictionary = {}  # enemy_id -> seconds
@@ -93,9 +110,10 @@ func _apply_slow_field(delta: float) -> void:
 		_enemy_exposure[eid] = _enemy_exposure.get(eid, 0.0) + delta
 
 		## Freeze if threshold reached
-		if _enemy_exposure[eid] >= FREEZE_THRESHOLD:
+		if _enemy_exposure[eid] >= _get_effective_freeze_threshold():
 			if enemy.has_method("apply_freeze"):
-				enemy.apply_freeze(freeze_dur)
+				var shatter := get_shatter_bonus()
+				enemy.apply_freeze(freeze_dur, shatter)
 			_enemy_exposure[eid] = 0.0  # Reset after freeze
 
 	## Clean up enemies that left range
@@ -108,6 +126,9 @@ func _apply_slow_field(delta: float) -> void:
 func _get_effective_slow() -> float:
 	if level <= 1:
 		return base_slow_percent
+	if upgrade_branch != "":
+		var key := "level_%d" % level
+		return BRANCH_DATA.get(upgrade_branch, {}).get(key, {}).get("slow_percent", base_slow_percent)
 	return UPGRADE_DATA[level - 1].get("slow_percent", base_slow_percent)
 
 
@@ -115,7 +136,26 @@ func _get_effective_slow() -> float:
 func _get_effective_freeze_duration() -> float:
 	if level <= 1:
 		return base_freeze_duration
+	if upgrade_branch != "":
+		var key := "level_%d" % level
+		return BRANCH_DATA.get(upgrade_branch, {}).get(key, {}).get("freeze_duration", base_freeze_duration)
 	return UPGRADE_DATA[level - 1].get("freeze_duration", base_freeze_duration)
+
+
+## Get freeze threshold (Deep Freeze branch reduces it).
+func _get_effective_freeze_threshold() -> float:
+	if upgrade_branch != "" and level >= 2:
+		var key := "level_%d" % level
+		return BRANCH_DATA.get(upgrade_branch, {}).get(key, {}).get("freeze_threshold", FREEZE_THRESHOLD)
+	return FREEZE_THRESHOLD
+
+
+## Get shatter bonus multiplier (Fracture Chill branch).
+func get_shatter_bonus() -> float:
+	if upgrade_branch == "b" and level >= 2:
+		var key := "level_%d" % level
+		return BRANCH_DATA["b"].get(key, {}).get("shatter_bonus", 0.0)
+	return 0.0
 
 
 ## ============================================================================
@@ -123,21 +163,38 @@ func _get_effective_freeze_duration() -> float:
 ## ============================================================================
 
 func _get_level_stats() -> Dictionary:
-	## Cryo Node doesn't use damage/attack_speed, but we still track range.
 	var r := base_range
-	if level > 1 and level <= UPGRADE_DATA.size():
-		r = UPGRADE_DATA[level - 1].get("range", base_range)
-	return {
-		"damage": 0.0,
-		"attack_speed": 0.0,
-		"range": r
-	}
+	if level > 1:
+		if upgrade_branch != "":
+			var key := "level_%d" % level
+			r = BRANCH_DATA.get(upgrade_branch, {}).get(key, {}).get("range", base_range)
+		elif level <= UPGRADE_DATA.size():
+			r = UPGRADE_DATA[level - 1].get("range", base_range)
+	return { "damage": 0.0, "attack_speed": 0.0, "range": r }
 
 
 func _get_upgrade_cost(target_level: int) -> int:
+	if upgrade_branch != "":
+		return _get_branch_upgrade_cost(upgrade_branch, target_level)
 	if target_level <= 1 or target_level > UPGRADE_DATA.size():
 		return base_cost
 	return UPGRADE_DATA[target_level - 1].get("cost", base_cost)
+
+
+func _has_branches() -> bool:
+	return true
+
+
+func _get_branch_info() -> Array:
+	return [
+		{ "id": "a", "name": BRANCH_DATA["a"]["name"], "description": BRANCH_DATA["a"]["description"], "cost": BRANCH_DATA["a"]["level_2"]["cost"] },
+		{ "id": "b", "name": BRANCH_DATA["b"]["name"], "description": BRANCH_DATA["b"]["description"], "cost": BRANCH_DATA["b"]["level_2"]["cost"] },
+	]
+
+
+func _get_branch_upgrade_cost(branch_id: String, target_level: int) -> int:
+	var key := "level_%d" % target_level
+	return BRANCH_DATA.get(branch_id, {}).get(key, {}).get("cost", base_cost)
 
 
 ## ============================================================================

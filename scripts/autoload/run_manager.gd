@@ -48,6 +48,9 @@ var enemies_killed: int = 0
 ## Total scrap earned this run.
 var scrap_earned: int = 0
 
+## Transmissions seen/collected this run (transmission IDs).
+var transmissions_seen: Array = []
+
 
 ## ============================================================================
 ## PUBLIC API
@@ -66,6 +69,7 @@ func start_new_run(seed: int = 0) -> void:
 	waves_survived = 0
 	enemies_killed = 0
 	scrap_earned = 0
+	transmissions_seen.clear()
 
 
 ## Apply a run modifier by ID.
@@ -95,4 +99,5 @@ func get_run_summary() -> Dictionary:
 		"scrap_earned": scrap_earned,
 		"modifiers": active_modifiers.duplicate(),
 		"rewards": chosen_rewards.duplicate(),
+		"transmissions": transmissions_seen.duplicate(),
 	}

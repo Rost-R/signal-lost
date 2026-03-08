@@ -22,6 +22,7 @@ const GridManagerScript = preload("res://scripts/systems/grid_manager.gd")
 signal tower_upgraded(new_level: int)
 signal tower_sold()
 signal attack_fired(target: Node2D)
+signal branch_choice_needed(tower: Node2D, branches: Array)
 
 
 ## ============================================================================
@@ -45,6 +46,7 @@ signal attack_fired(target: Node2D)
 
 var level: int = 1
 var grid_position: Vector2i = Vector2i.ZERO
+var upgrade_branch: String = ""  ## "" = no branch chosen, "a" or "b"
 
 ## Synergy-modified stats (recalculated when neighbors change).
 var effective_damage: float = 0.0
@@ -87,6 +89,7 @@ func _physics_process(delta: float) -> void:
 		_attack_timer = 0.0
 		_attack(current_target)
 		attack_fired.emit(current_target)
+		GameManager.add_signal_charge(GameManager.CHARGE_PER_ATTACK)
 
 	queue_redraw()
 
@@ -121,18 +124,37 @@ func apply_synergy(damage_mult: float, speed_mult: float, range_mult: float) -> 
 	recalculate_stats()
 
 
+## Get total scrap invested in this tower (base + all upgrade costs).
+func get_total_invested() -> int:
+	var total := base_cost
+	if level >= 2:
+		if upgrade_branch != "":
+			total += _get_branch_upgrade_cost(upgrade_branch, 2)
+		else:
+			total += _get_upgrade_cost(2)
+	if level >= 3:
+		if upgrade_branch != "":
+			total += _get_branch_upgrade_cost(upgrade_branch, 3)
+		else:
+			total += _get_upgrade_cost(3)
+	return total
+
+
 ## Get sell value based on total investment.
 func get_sell_value() -> int:
-	var total_cost := base_cost
-	for i in range(1, level):
-		total_cost += _get_upgrade_cost(i + 1)
-	return int(total_cost * sell_refund_percent)
+	return int(get_total_invested() * sell_refund_percent)
 
 
 ## Upgrade the tower to the next level. Returns false if max level or can't afford.
+## If the tower has branches and is level 1, emits branch_choice_needed instead.
 func upgrade() -> bool:
 	if level >= 3:
 		return false
+	## Level 1→2: check if branches exist
+	if level == 1 and _has_branches():
+		var branches := _get_branch_info()
+		branch_choice_needed.emit(self, branches)
+		return false  ## Don't upgrade yet — wait for branch choice
 	var cost := _get_upgrade_cost(level + 1)
 	if not GameManager.spend_scrap(cost):
 		return false
@@ -142,11 +164,39 @@ func upgrade() -> bool:
 	return true
 
 
+## Upgrade with a specific branch choice (called when player picks a branch).
+func upgrade_with_branch(branch_id: String) -> bool:
+	if level != 1 or not _has_branches():
+		return false
+	var cost := _get_branch_upgrade_cost(branch_id, 2)
+	if not GameManager.spend_scrap(cost):
+		return false
+	upgrade_branch = branch_id
+	level = 2
+	recalculate_stats()
+	tower_upgraded.emit(level)
+	return true
+
+
 ## Get upgrade cost for a specific level.
 func get_next_upgrade_cost() -> int:
 	if level >= 3:
 		return -1
+	if level == 1 and _has_branches():
+		## Return cost of branch A as preview (both branches cost the same)
+		return _get_branch_upgrade_cost("a", 2)
 	return _get_upgrade_cost(level + 1)
+
+
+## Get the name of the chosen branch (empty if no branch).
+func get_branch_name() -> String:
+	if upgrade_branch == "":
+		return ""
+	var branches := _get_branch_info()
+	for b in branches:
+		if b.id == upgrade_branch:
+			return b.name
+	return ""
 
 
 ## Show/hide range indicator.
@@ -158,6 +208,7 @@ func set_range_visible(visible: bool) -> void:
 ## Called when acquired from object pool.
 func on_pool_acquire() -> void:
 	level = 1
+	upgrade_branch = ""
 	_synergy_damage_mult = 1.0
 	_synergy_speed_mult = 1.0
 	_synergy_range_mult = 1.0
@@ -270,9 +321,25 @@ func _get_level_stats() -> Dictionary:
 	}
 
 
-## Get upgrade cost for a level.
+## Get upgrade cost for a level (linear path, no branches).
 func _get_upgrade_cost(_target_level: int) -> int:
 	return base_cost  # Override per tower
+
+
+## Whether this tower has upgrade branches. Override to return true.
+func _has_branches() -> bool:
+	return false
+
+
+## Get branch info for the UI. Override per tower.
+## Returns: [{ id: "a", name: "Branch Name", description: "...", cost: 80 }, ...]
+func _get_branch_info() -> Array:
+	return []
+
+
+## Get upgrade cost for a specific branch and level. Override per tower.
+func _get_branch_upgrade_cost(_branch_id: String, _target_level: int) -> int:
+	return base_cost
 
 
 ## ============================================================================
