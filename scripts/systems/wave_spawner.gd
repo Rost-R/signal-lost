@@ -116,6 +116,13 @@ func get_active_enemy_count() -> int:
 	return _active_enemies.size()
 
 
+## Get the reward scrap defined in waves.json for a given wave.
+func get_wave_reward_scrap(wave_number: int) -> int:
+	var wave_key := "wave_%d" % wave_number
+	var wave: Dictionary = _wave_data.get("wave_templates", {}).get(wave_key, {})
+	return int(wave.get("reward_scrap", 0))
+
+
 ## ============================================================================
 ## PRIVATE
 ## ============================================================================

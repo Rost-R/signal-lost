@@ -179,7 +179,12 @@ func _on_start_wave() -> void:
 
 
 func _on_wave_cleared() -> void:
-	## Award wave reward scrap from waves.json
+	## Award wave reward scrap defined in waves.json
+	var wave_reward: int = _wave_spawner.get_wave_reward_scrap(GameManager.current_wave)
+	if wave_reward > 0:
+		GameManager.add_scrap(wave_reward)
+		RunManager.scrap_earned += wave_reward
+
 	GameManager.complete_wave()
 
 	## If game is over (victory on wave 10), skip reward choice

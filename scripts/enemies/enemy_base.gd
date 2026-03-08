@@ -125,11 +125,19 @@ func _draw() -> void:
 ## ============================================================================
 
 ## Initialize enemy for a new spawn.
-func setup(path: PackedVector2Array, hp_multiplier: float = 1.0) -> void:
+## wave_mult scales HP fully, speed/armor scale at reduced rates
+## to match GDD v2 difficulty curve (HP primary, speed/armor secondary).
+func setup(path: PackedVector2Array, wave_mult: float = 1.0) -> void:
 	_path = path
 	_path_index = 0
-	current_hp = max_hp * hp_multiplier
-	shield_hp = max_shield
+	current_hp = max_hp * wave_mult
+	## Speed scales at 30% of wave multiplier (prevents late waves being uncatchable)
+	var speed_scale := 1.0 + (wave_mult - 1.0) * 0.3
+	base_speed = base_speed * speed_scale
+	## Armor scales at 50% of wave multiplier
+	var armor_scale := 1.0 + (wave_mult - 1.0) * 0.5
+	armor = armor * armor_scale
+	shield_hp = max_shield * wave_mult
 	_slow_percent = 0.0
 	_is_frozen = false
 	_freeze_timer = 0.0
