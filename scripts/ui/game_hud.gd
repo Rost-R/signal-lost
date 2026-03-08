@@ -2,12 +2,13 @@
 ## GAME HUD
 ## ============================================================================
 ##
-## Purpose: In-game heads-up display. Shows core HP, scrap, power, wave info,
+## Purpose: In-game heads-up display with diegetic terminal aesthetic.
+## Shows core HP, scrap, power pips, wave info, signal charge meter,
 ## tower selection panel, and selected tower info.
-## All drawn via _draw() for the CRT aesthetic.
+## All drawn via _draw() for the CRT look.
 ##
 ## @author Signal Lost Team
-## @version 0.1.0
+## @version 0.2.0
 class_name GameHUD
 extends CanvasLayer
 
@@ -27,12 +28,21 @@ signal branch_selected(branch_id: String)
 ## CONSTANTS
 ## ============================================================================
 
-const PANEL_COLOR := Color(0.04, 0.06, 0.09, 0.85)
-const BORDER_COLOR := Color(0, 1, 0.53, 0.3)
-const TEXT_COLOR := Color(0, 1, 0.53)  # Terminal green
-const ACCENT_COLOR := Color(0, 0.78, 1)  # Cyan
-const WARNING_COLOR := Color(1, 0.73, 0)  # Amber
-const DANGER_COLOR := Color(1, 0.13, 0.27)  # Red
+const PANEL_COLOR := Color(0.04, 0.06, 0.09, 0.92)
+const BORDER_COLOR := Color(0, 1, 0.53, 0.25)
+const BORDER_BRIGHT := Color(0, 1, 0.53, 0.5)
+const TEXT_COLOR := Color(0, 1, 0.53)  # Terminal green #00FF88
+const TEXT_DIM := Color(0, 1, 0.53, 0.5)
+const ACCENT_COLOR := Color(0, 0.78, 1)  # Cyan #00C8FF
+const WARNING_COLOR := Color(1, 0.73, 0)  # Amber #FFB800
+const DANGER_COLOR := Color(1, 0.13, 0.27)  # Red #FF2244
+const CHARGE_COLOR := Color(1, 0.72, 0)  # Signal charge amber
+const CHARGE_FULL := Color(1, 0.9, 0.3)  # Signal charge when full
+
+## Top bar layout
+const TOP_BAR_H := 36.0
+## Bottom panel layout
+const BOTTOM_PANEL_H := 68.0
 
 const TOWER_OPTIONS := [
 	{ "id": "pulse_emitter", "name": "Pulse", "cost": 50, "power": 1, "key": "1", "color": Color(0, 0.78, 1) },
@@ -193,60 +203,106 @@ func _on_draw() -> void:
 	_draw_top_bar(vp_size)
 	_draw_tower_panel(vp_size)
 	_draw_phase_indicator(vp_size)
-	_draw_wave_info(vp_size)
 	_draw_tower_info_panel(vp_size)
+	_draw_corner_frames(vp_size)
 	if _branch_choosing:
 		_draw_branch_choice(vp_size)
 
+
+## ── TOP BAR ──────────────────────────────────────────────────────────────────
 
 func _draw_top_bar(vp_size: Vector2) -> void:
 	var font := ThemeDB.fallback_font
 	if not font:
 		return
 
-	## Background
-	_draw_node.draw_rect(Rect2(0, 0, vp_size.x, 32), PANEL_COLOR)
-	_draw_node.draw_line(Vector2(0, 32), Vector2(vp_size.x, 32), BORDER_COLOR, 1.0)
+	## Background with double border
+	_draw_node.draw_rect(Rect2(0, 0, vp_size.x, TOP_BAR_H), PANEL_COLOR)
+	_draw_node.draw_line(Vector2(0, TOP_BAR_H), Vector2(vp_size.x, TOP_BAR_H), BORDER_BRIGHT, 1.0)
+	_draw_node.draw_line(Vector2(0, TOP_BAR_H + 1), Vector2(vp_size.x, TOP_BAR_H + 1), BORDER_COLOR, 1.0)
 
-	## Core HP
-	var hp_color := TEXT_COLOR
+	var y_text := 15.0
+	var y_bar := 21.0
+
+	## ── CORE HP (bar + text) ──
 	var hp_ratio := float(GameManager.core_hp) / GameManager.STARTING_CORE_HP
+	var hp_color := TEXT_COLOR
 	if hp_ratio < 0.25:
 		hp_color = DANGER_COLOR
 	elif hp_ratio < 0.5:
 		hp_color = WARNING_COLOR
-	_draw_node.draw_string(font, Vector2(12, 22), "CORE: %d/%d" % [GameManager.core_hp, GameManager.STARTING_CORE_HP], HORIZONTAL_ALIGNMENT_LEFT, -1, 14, hp_color)
 
-	## Scrap
-	_draw_node.draw_string(font, Vector2(220, 22), "SCRAP: %d" % GameManager.scrap, HORIZONTAL_ALIGNMENT_LEFT, -1, 14, ACCENT_COLOR)
+	_draw_node.draw_string(font, Vector2(10, y_text), "CORE", HORIZONTAL_ALIGNMENT_LEFT, -1, 10, TEXT_DIM)
+	## HP bar — segmented
+	var bar_x := 10.0
+	var bar_w := 120.0
+	var bar_h := 8.0
+	var seg_count := GameManager.STARTING_CORE_HP
+	var seg_w := bar_w / seg_count
+	for i in seg_count:
+		var sx := bar_x + i * seg_w
+		var seg_rect := Rect2(sx, y_bar, seg_w - 1, bar_h)
+		if i < GameManager.core_hp:
+			_draw_node.draw_rect(seg_rect, hp_color)
+		else:
+			_draw_node.draw_rect(seg_rect, Color(0.15, 0.15, 0.15, 0.6))
+	_draw_node.draw_string(font, Vector2(bar_x + bar_w + 4, y_bar + bar_h), "%d/%d" % [GameManager.core_hp, GameManager.STARTING_CORE_HP], HORIZONTAL_ALIGNMENT_LEFT, -1, 10, hp_color)
 
-	## Power
-	var pwr_color := TEXT_COLOR
-	if GameManager.power_used >= GameManager.power_cap:
-		pwr_color = WARNING_COLOR
-	_draw_node.draw_string(font, Vector2(380, 22), "PWR: %d/%d" % [GameManager.power_used, GameManager.power_cap], HORIZONTAL_ALIGNMENT_LEFT, -1, 14, pwr_color)
+	## ── SCRAP ──
+	var scrap_x := 190.0
+	_draw_node.draw_string(font, Vector2(scrap_x, y_text), "SCRAP", HORIZONTAL_ALIGNMENT_LEFT, -1, 10, TEXT_DIM)
+	_draw_node.draw_string(font, Vector2(scrap_x, y_bar + bar_h), "%d" % GameManager.scrap, HORIZONTAL_ALIGNMENT_LEFT, -1, 14, ACCENT_COLOR)
 
-	## Wave
-	_draw_node.draw_string(font, Vector2(530, 22), "WAVE: %d/%d" % [GameManager.current_wave, GameManager.MAX_WAVES], HORIZONTAL_ALIGNMENT_LEFT, -1, 14, TEXT_COLOR)
+	## ── POWER (pip display) ──
+	var pwr_x := 280.0
+	_draw_node.draw_string(font, Vector2(pwr_x, y_text), "POWER", HORIZONTAL_ALIGNMENT_LEFT, -1, 10, TEXT_DIM)
+	var pip_size := 8.0
+	var pip_gap := 3.0
+	for i in GameManager.power_cap:
+		var px := pwr_x + i * (pip_size + pip_gap)
+		var pip_rect := Rect2(px, y_bar, pip_size, bar_h)
+		if i < GameManager.power_used:
+			_draw_node.draw_rect(pip_rect, WARNING_COLOR)
+		else:
+			_draw_node.draw_rect(pip_rect, Color(TEXT_COLOR, 0.2))
+			_draw_node.draw_rect(pip_rect, Color(TEXT_COLOR, 0.3), false, 1.0)
+	var pwr_label_x := pwr_x + GameManager.power_cap * (pip_size + pip_gap) + 2
+	_draw_node.draw_string(font, Vector2(pwr_label_x, y_bar + bar_h), "%d/%d" % [GameManager.power_used, GameManager.power_cap], HORIZONTAL_ALIGNMENT_LEFT, -1, 10, TEXT_DIM)
 
-	## Signal Charge meter
-	var charge_x := 680.0
-	var charge_w := 120.0
-	var charge_h := 10.0
-	var charge_y := 11.0
+	## ── WAVE ──
+	var wave_x := 430.0
+	_draw_node.draw_string(font, Vector2(wave_x, y_text), "WAVE", HORIZONTAL_ALIGNMENT_LEFT, -1, 10, TEXT_DIM)
+	_draw_node.draw_string(font, Vector2(wave_x, y_bar + bar_h), "%d / %d" % [GameManager.current_wave, GameManager.MAX_WAVES], HORIZONTAL_ALIGNMENT_LEFT, -1, 14, TEXT_COLOR)
+
+	## Enemy count during wave (inline after wave number)
+	if GameManager.current_phase == GameManager.GamePhase.WAVE or \
+	   GameManager.current_phase == GameManager.GamePhase.BOSS:
+		var enemy_count := get_tree().get_nodes_in_group("enemies").size()
+		_draw_node.draw_string(font, Vector2(wave_x + 60, y_bar + bar_h), "[ %d ACTIVE ]" % enemy_count, HORIZONTAL_ALIGNMENT_LEFT, -1, 10, DANGER_COLOR)
+
+	## ── SIGNAL CHARGE (meter bar) ──
+	var sig_x := 600.0
+	var sig_w := 140.0
 	var charge_ratio := GameManager.signal_charge / GameManager.signal_charge_max
-	## Background
-	_draw_node.draw_rect(Rect2(charge_x, charge_y, charge_w, charge_h), Color(0.15, 0.15, 0.15, 0.8))
-	## Fill — amber/gold color
-	var charge_color := Color(1, 0.72, 0)
-	if charge_ratio >= 1.0:
-		charge_color = Color(1, 0.9, 0.3)  ## Bright when full
-	_draw_node.draw_rect(Rect2(charge_x, charge_y, charge_w * charge_ratio, charge_h), charge_color)
-	## Border
-	_draw_node.draw_rect(Rect2(charge_x, charge_y, charge_w, charge_h), BORDER_COLOR, false, 1.0)
-	## Label
-	_draw_node.draw_string(font, Vector2(charge_x, charge_y + charge_h + 14), "SIG: %d%%" % int(charge_ratio * 100), HORIZONTAL_ALIGNMENT_LEFT, -1, 10, charge_color)
+	var sig_color := CHARGE_FULL if charge_ratio >= 1.0 else CHARGE_COLOR
 
+	_draw_node.draw_string(font, Vector2(sig_x, y_text), "SIGNAL", HORIZONTAL_ALIGNMENT_LEFT, -1, 10, TEXT_DIM)
+	## Bar background
+	_draw_node.draw_rect(Rect2(sig_x, y_bar, sig_w, bar_h), Color(0.12, 0.12, 0.12, 0.8))
+	## Bar fill
+	_draw_node.draw_rect(Rect2(sig_x, y_bar, sig_w * charge_ratio, bar_h), sig_color)
+	## Bar border
+	_draw_node.draw_rect(Rect2(sig_x, y_bar, sig_w, bar_h), Color(sig_color, 0.4), false, 1.0)
+	## Percentage
+	_draw_node.draw_string(font, Vector2(sig_x + sig_w + 4, y_bar + bar_h), "%d%%" % int(charge_ratio * 100), HORIZONTAL_ALIGNMENT_LEFT, -1, 10, sig_color)
+
+	## ── Vertical separators between sections ──
+	var sep_color := Color(BORDER_COLOR, 0.4)
+	for sx in [180.0, 270.0, 420.0, 590.0]:
+		_draw_node.draw_line(Vector2(sx, 4), Vector2(sx, TOP_BAR_H - 4), sep_color, 1.0)
+
+
+## ── TOWER SELECTION PANEL ────────────────────────────────────────────────────
 
 func _draw_tower_panel(vp_size: Vector2) -> void:
 	var font := ThemeDB.fallback_font
@@ -254,47 +310,64 @@ func _draw_tower_panel(vp_size: Vector2) -> void:
 		return
 
 	## Bottom panel
-	var panel_h := 64.0
-	var panel_y := vp_size.y - panel_h
-	_draw_node.draw_rect(Rect2(0, panel_y, vp_size.x, panel_h), PANEL_COLOR)
-	_draw_node.draw_line(Vector2(0, panel_y), Vector2(vp_size.x, panel_y), BORDER_COLOR, 1.0)
+	var panel_y := vp_size.y - BOTTOM_PANEL_H
+	_draw_node.draw_rect(Rect2(0, panel_y, vp_size.x, BOTTOM_PANEL_H), PANEL_COLOR)
+	_draw_node.draw_line(Vector2(0, panel_y), Vector2(vp_size.x, panel_y), BORDER_BRIGHT, 1.0)
+	_draw_node.draw_line(Vector2(0, panel_y - 1), Vector2(vp_size.x, panel_y - 1), BORDER_COLOR, 1.0)
 
-	## Tower buttons — compact to fit 6 towers + start wave
-	var btn_w := 90.0
-	var btn_h := 44.0
+	## Tower buttons
+	var btn_w := 92.0
+	var btn_h := 48.0
 	var gap := 6.0
-	var start_x := 8.0
+	var start_x := 10.0
 	var btn_y := panel_y + 10.0
 
 	for i in TOWER_OPTIONS.size():
 		var opt: Dictionary = TOWER_OPTIONS[i]
 		var rect := Rect2(start_x + i * (btn_w + gap), btn_y, btn_w, btn_h)
+		var can_afford: bool = GameManager.scrap >= opt["cost"] and GameManager.can_use_power(opt["power"])
+		var is_selected: bool = (i == selected_tower_index)
 
 		## Button background
 		var bg_color := PANEL_COLOR
-		if i == selected_tower_index:
-			bg_color = Color(opt["color"], 0.2)
+		if is_selected:
+			bg_color = Color(opt["color"], 0.15)
 		_draw_node.draw_rect(rect, bg_color)
 
+		## Color indicator bar (left edge)
+		var indicator_rect := Rect2(rect.position.x, rect.position.y, 3, btn_h)
+		_draw_node.draw_rect(indicator_rect, opt["color"] if (can_afford or is_selected) else Color(0.3, 0.3, 0.3))
+
 		## Border
-		var border: Color = opt["color"] if i == selected_tower_index else BORDER_COLOR
-		_draw_node.draw_rect(rect, border, false, 1.0)
+		var border_col: Color = opt["color"] if is_selected else BORDER_COLOR
+		_draw_node.draw_rect(rect, border_col, false, 1.0 if not is_selected else 1.5)
 
 		## Text
-		var can_afford: bool = GameManager.scrap >= opt["cost"] and GameManager.can_use_power(opt["power"])
-		var text_col: Color = opt["color"] if can_afford else Color(0.4, 0.4, 0.4)
-		_draw_node.draw_string(font, Vector2(rect.position.x + 4, rect.position.y + 16), "[%s] %s" % [opt["key"], opt["name"]], HORIZONTAL_ALIGNMENT_LEFT, -1, 11, text_col)
-		_draw_node.draw_string(font, Vector2(rect.position.x + 4, rect.position.y + 32), "$%d P%d" % [opt["cost"], opt["power"]], HORIZONTAL_ALIGNMENT_LEFT, -1, 10, text_col * Color(1, 1, 1, 0.7))
+		var text_col: Color = opt["color"] if can_afford else Color(0.35, 0.35, 0.35)
+		_draw_node.draw_string(font, Vector2(rect.position.x + 8, rect.position.y + 16), "[%s] %s" % [opt["key"], opt["name"]], HORIZONTAL_ALIGNMENT_LEFT, -1, 12, text_col)
+		## Cost and power on second line
+		var cost_col: Color = (ACCENT_COLOR if can_afford else Color(0.3, 0.3, 0.3)) * Color(1, 1, 1, 0.8)
+		_draw_node.draw_string(font, Vector2(rect.position.x + 8, rect.position.y + 32), "$%d" % opt["cost"], HORIZONTAL_ALIGNMENT_LEFT, -1, 10, cost_col)
+		## Power pips
+		var pip_start_x := rect.position.x + 40
+		for p in opt["power"]:
+			var pip_r := Rect2(pip_start_x + p * 8, rect.position.y + 26, 5, 5)
+			_draw_node.draw_rect(pip_r, WARNING_COLOR if can_afford else Color(0.3, 0.3, 0.3))
 
 	## Start Wave button (during build phase)
 	if GameManager.current_phase == GameManager.GamePhase.BUILD or \
 	   GameManager.current_phase == GameManager.GamePhase.BETWEEN_WAVES:
-		var sw_rect := Rect2(vp_size.x - 160, btn_y, 140, btn_h)
-		_draw_node.draw_rect(sw_rect, Color(0, 1, 0.53, 0.1))
+		var sw_w := 150.0
+		var sw_rect := Rect2(vp_size.x - sw_w - 10, btn_y, sw_w, btn_h)
+		## Pulsing glow background
+		var pulse: float = 0.08 + abs(sin(Time.get_ticks_msec() * 0.003)) * 0.07
+		_draw_node.draw_rect(sw_rect, Color(0, 1, 0.53, pulse))
 		_draw_node.draw_rect(sw_rect, TEXT_COLOR, false, 1.5)
-		_draw_node.draw_string(font, Vector2(sw_rect.position.x + 8, sw_rect.position.y + 18), "[SPACE]", HORIZONTAL_ALIGNMENT_LEFT, -1, 11, TEXT_COLOR * Color(1, 1, 1, 0.6))
-		_draw_node.draw_string(font, Vector2(sw_rect.position.x + 8, sw_rect.position.y + 34), "START WAVE", HORIZONTAL_ALIGNMENT_LEFT, -1, 13, TEXT_COLOR)
+		_draw_node.draw_string(font, Vector2(sw_rect.position.x + 10, sw_rect.position.y + 18), "[SPACE]", HORIZONTAL_ALIGNMENT_LEFT, -1, 10, TEXT_DIM)
+		_draw_node.draw_string(font, Vector2(sw_rect.position.x + 10, sw_rect.position.y + 36), "START WAVE", HORIZONTAL_ALIGNMENT_LEFT, -1, 14, TEXT_COLOR)
 
+
+## ── PHASE INDICATOR ──────────────────────────────────────────────────────────
 
 func _draw_phase_indicator(vp_size: Vector2) -> void:
 	var font := ThemeDB.fallback_font
@@ -305,38 +378,44 @@ func _draw_phase_indicator(vp_size: Vector2) -> void:
 	var phase_color := TEXT_COLOR
 	match GameManager.current_phase:
 		GameManager.GamePhase.BUILD:
-			phase_text = "[ BUILD PHASE ]"
+			phase_text = "BUILD PHASE"
 		GameManager.GamePhase.WAVE:
-			phase_text = "[ WAVE IN PROGRESS ]"
+			phase_text = "WAVE IN PROGRESS"
 			phase_color = DANGER_COLOR
 		GameManager.GamePhase.BETWEEN_WAVES:
-			phase_text = "[ WAVE CLEAR — BUILD ]"
+			phase_text = "WAVE CLEAR"
 			phase_color = ACCENT_COLOR
 		GameManager.GamePhase.REWARD_CHOICE:
-			phase_text = "[ CHOOSE REWARD ]"
-			phase_color = Color(1, 0.72, 0)  # Amber
+			phase_text = "CHOOSE REWARD"
+			phase_color = WARNING_COLOR
 		GameManager.GamePhase.BOSS:
-			phase_text = "[ BOSS WAVE ]"
+			phase_text = "BOSS WAVE"
 			phase_color = Color(0.67, 0.27, 1)
 		GameManager.GamePhase.GAME_OVER:
-			phase_text = "[ GAME OVER ]"
+			phase_text = "GAME OVER"
 			phase_color = DANGER_COLOR
 
-	var text_size := font.get_string_size(phase_text, HORIZONTAL_ALIGNMENT_CENTER, -1, 16)
-	_draw_node.draw_string(font, Vector2((vp_size.x - text_size.x) * 0.5, 22), phase_text, HORIZONTAL_ALIGNMENT_CENTER, -1, 16, phase_color)
+	## Terminal-style framing: ═══[ PHASE TEXT ]═══
+	var full_text := phase_text
+	var text_size := font.get_string_size(full_text, HORIZONTAL_ALIGNMENT_CENTER, -1, 13)
+	var cx := vp_size.x * 0.5
+	var cy := TOP_BAR_H + 16
+
+	## Decorative lines on either side
+	var line_w := 40.0
+	var text_half := text_size.x * 0.5
+	_draw_node.draw_line(Vector2(cx - text_half - line_w - 8, cy - 4), Vector2(cx - text_half - 8, cy - 4), Color(phase_color, 0.4), 1.0)
+	_draw_node.draw_line(Vector2(cx + text_half + 8, cy - 4), Vector2(cx + text_half + line_w + 8, cy - 4), Color(phase_color, 0.4), 1.0)
+
+	## Brackets
+	_draw_node.draw_string(font, Vector2(cx - text_half - 6, cy), "[", HORIZONTAL_ALIGNMENT_LEFT, -1, 13, Color(phase_color, 0.6))
+	_draw_node.draw_string(font, Vector2(cx + text_half + 1, cy), "]", HORIZONTAL_ALIGNMENT_LEFT, -1, 13, Color(phase_color, 0.6))
+
+	## Phase text
+	_draw_node.draw_string(font, Vector2(cx - text_half, cy), full_text, HORIZONTAL_ALIGNMENT_LEFT, -1, 13, phase_color)
 
 
-func _draw_wave_info(vp_size: Vector2) -> void:
-	var font := ThemeDB.fallback_font
-	if not font:
-		return
-
-	## Enemy count during wave
-	if GameManager.current_phase == GameManager.GamePhase.WAVE or \
-	   GameManager.current_phase == GameManager.GamePhase.BOSS:
-		var enemy_count := get_tree().get_nodes_in_group("enemies").size()
-		_draw_node.draw_string(font, Vector2(vp_size.x - 150, 22), "ENEMIES: %d" % enemy_count, HORIZONTAL_ALIGNMENT_LEFT, -1, 14, DANGER_COLOR)
-
+## ── TOWER INFO PANEL ─────────────────────────────────────────────────────────
 
 func _draw_tower_info_panel(vp_size: Vector2) -> void:
 	if not _selected_tower or not is_instance_valid(_selected_tower):
@@ -348,90 +427,139 @@ func _draw_tower_info_panel(vp_size: Vector2) -> void:
 		return
 
 	## Right-side info panel
-	var panel_w := 180.0
-	var panel_h := 160.0
+	var panel_w := 190.0
+	var panel_h := 180.0
 	var panel_x := vp_size.x - panel_w - 8
-	var panel_y := 40.0
+	var panel_y := TOP_BAR_H + 8
 	var rect := Rect2(panel_x, panel_y, panel_w, panel_h)
 
 	_draw_node.draw_rect(rect, PANEL_COLOR)
-	_draw_node.draw_rect(rect, BORDER_COLOR, false, 1.0)
+	_draw_node.draw_rect(rect, BORDER_BRIGHT, false, 1.0)
 
-	var x := panel_x + 8
+	var x := panel_x + 10
 	var y := panel_y + 18
 
-	## Tower name
+	## Tower name with color indicator
 	var t_name: String = _selected_tower.tower_name if "tower_name" in _selected_tower else "Tower"
 	var t_color: Color = _selected_tower.tower_color if "tower_color" in _selected_tower else ACCENT_COLOR
-	_draw_node.draw_string(font, Vector2(x, y), t_name, HORIZONTAL_ALIGNMENT_LEFT, -1, 14, t_color)
-	y += 18
+	## Color pip before name
+	_draw_node.draw_rect(Rect2(x, y - 8, 4, 12), t_color)
+	_draw_node.draw_string(font, Vector2(x + 10, y), t_name, HORIZONTAL_ALIGNMENT_LEFT, -1, 14, t_color)
+	y += 16
 
 	## Level + branch name
 	var t_level: int = _selected_tower.level if "level" in _selected_tower else 1
 	var branch_name: String = _selected_tower.get_branch_name() if _selected_tower.has_method("get_branch_name") else ""
 	if branch_name != "":
-		_draw_node.draw_string(font, Vector2(x, y), "Lv%d — %s" % [t_level, branch_name], HORIZONTAL_ALIGNMENT_LEFT, -1, 11, TEXT_COLOR)
+		_draw_node.draw_string(font, Vector2(x + 10, y), "Lv%d — %s" % [t_level, branch_name], HORIZONTAL_ALIGNMENT_LEFT, -1, 10, TEXT_DIM)
 	else:
-		_draw_node.draw_string(font, Vector2(x, y), "Level: %d/3" % t_level, HORIZONTAL_ALIGNMENT_LEFT, -1, 11, TEXT_COLOR)
-	y += 16
+		_draw_node.draw_string(font, Vector2(x + 10, y), "Level %d / 3" % t_level, HORIZONTAL_ALIGNMENT_LEFT, -1, 10, TEXT_DIM)
+	y += 14
 
-	## Damage (if applicable)
+	## Separator line
+	_draw_node.draw_line(Vector2(x, y), Vector2(panel_x + panel_w - 10, y), BORDER_COLOR, 1.0)
+	y += 8
+
+	## Stats section
 	if "effective_damage" in _selected_tower and _selected_tower.effective_damage > 0:
-		_draw_node.draw_string(font, Vector2(x, y), "DMG: %.0f" % _selected_tower.effective_damage, HORIZONTAL_ALIGNMENT_LEFT, -1, 11, TEXT_COLOR)
-		y += 14
+		_draw_node.draw_string(font, Vector2(x, y), "DMG", HORIZONTAL_ALIGNMENT_LEFT, -1, 10, TEXT_DIM)
+		_draw_node.draw_string(font, Vector2(x + 50, y), "%.0f" % _selected_tower.effective_damage, HORIZONTAL_ALIGNMENT_LEFT, -1, 11, TEXT_COLOR)
+		y += 13
 
-	## Range
+	if "effective_attack_speed" in _selected_tower and _selected_tower.effective_attack_speed > 0:
+		_draw_node.draw_string(font, Vector2(x, y), "SPD", HORIZONTAL_ALIGNMENT_LEFT, -1, 10, TEXT_DIM)
+		_draw_node.draw_string(font, Vector2(x + 50, y), "%.1f/s" % _selected_tower.effective_attack_speed, HORIZONTAL_ALIGNMENT_LEFT, -1, 11, TEXT_COLOR)
+		y += 13
+
 	if "effective_range" in _selected_tower:
-		_draw_node.draw_string(font, Vector2(x, y), "RNG: %.1f" % _selected_tower.effective_range, HORIZONTAL_ALIGNMENT_LEFT, -1, 11, TEXT_COLOR)
-		y += 14
+		_draw_node.draw_string(font, Vector2(x, y), "RNG", HORIZONTAL_ALIGNMENT_LEFT, -1, 10, TEXT_DIM)
+		_draw_node.draw_string(font, Vector2(x + 50, y), "%.1f" % _selected_tower.effective_range, HORIZONTAL_ALIGNMENT_LEFT, -1, 11, TEXT_COLOR)
+		y += 13
 
 	## Targeting priority (for attack towers)
 	if "target_priority" in _selected_tower and "effective_attack_speed" in _selected_tower and _selected_tower.effective_attack_speed > 0:
 		var priority_names := ["FIRST", "LAST", "STRONG", "WEAK"]
 		var pri: int = _selected_tower.target_priority
-		_draw_node.draw_string(font, Vector2(x, y), "[T] Target: %s" % priority_names[pri], HORIZONTAL_ALIGNMENT_LEFT, -1, 11, TEXT_COLOR)
-		y += 14
+		y += 2
+		_draw_node.draw_string(font, Vector2(x, y), "[T] %s" % priority_names[pri], HORIZONTAL_ALIGNMENT_LEFT, -1, 10, TEXT_DIM)
+		y += 13
 
-	y += 4
+	## Separator line
+	y += 2
+	_draw_node.draw_line(Vector2(x, y), Vector2(panel_x + panel_w - 10, y), BORDER_COLOR, 1.0)
+	y += 8
 
 	## Upgrade button
 	if t_level < 3:
 		var upgrade_cost: int = _selected_tower.get_next_upgrade_cost() if _selected_tower.has_method("get_next_upgrade_cost") else -1
 		if upgrade_cost > 0:
 			var can_upgrade: bool = GameManager.scrap >= upgrade_cost
-			var u_col: Color = ACCENT_COLOR if can_upgrade else Color(0.4, 0.4, 0.4)
-			_draw_node.draw_string(font, Vector2(x, y), "[U] Upgrade $%d" % upgrade_cost, HORIZONTAL_ALIGNMENT_LEFT, -1, 11, u_col)
+			var u_col: Color = ACCENT_COLOR if can_upgrade else Color(0.35, 0.35, 0.35)
+			_draw_node.draw_string(font, Vector2(x, y), "[U] UPGRADE", HORIZONTAL_ALIGNMENT_LEFT, -1, 11, u_col)
+			_draw_node.draw_string(font, Vector2(x + 90, y), "$%d" % upgrade_cost, HORIZONTAL_ALIGNMENT_LEFT, -1, 11, u_col)
 			y += 16
 
 	## Sell button
 	var sell_val: int = _selected_tower.get_sell_value() if _selected_tower.has_method("get_sell_value") else 0
-	_draw_node.draw_string(font, Vector2(x, y), "[X] Sell +$%d" % sell_val, HORIZONTAL_ALIGNMENT_LEFT, -1, 11, WARNING_COLOR)
+	_draw_node.draw_string(font, Vector2(x, y), "[X] SELL", HORIZONTAL_ALIGNMENT_LEFT, -1, 11, WARNING_COLOR)
+	_draw_node.draw_string(font, Vector2(x + 90, y), "+$%d" % sell_val, HORIZONTAL_ALIGNMENT_LEFT, -1, 11, WARNING_COLOR)
 
+
+## ── CORNER FRAMES ────────────────────────────────────────────────────────────
+
+func _draw_corner_frames(vp_size: Vector2) -> void:
+	## Subtle terminal corner decorations
+	var corner_len := 12.0
+	var col := Color(BORDER_COLOR, 0.5)
+	var inset := 2.0
+	var bottom_y := vp_size.y - BOTTOM_PANEL_H
+
+	## Top-left (below top bar)
+	var tl_y := TOP_BAR_H + 4
+	_draw_node.draw_line(Vector2(inset, tl_y), Vector2(inset + corner_len, tl_y), col, 1.0)
+	_draw_node.draw_line(Vector2(inset, tl_y), Vector2(inset, tl_y + corner_len), col, 1.0)
+
+	## Top-right (below top bar)
+	_draw_node.draw_line(Vector2(vp_size.x - inset, tl_y), Vector2(vp_size.x - inset - corner_len, tl_y), col, 1.0)
+	_draw_node.draw_line(Vector2(vp_size.x - inset, tl_y), Vector2(vp_size.x - inset, tl_y + corner_len), col, 1.0)
+
+	## Bottom-left (above bottom panel)
+	_draw_node.draw_line(Vector2(inset, bottom_y - 4), Vector2(inset + corner_len, bottom_y - 4), col, 1.0)
+	_draw_node.draw_line(Vector2(inset, bottom_y - 4), Vector2(inset, bottom_y - 4 - corner_len), col, 1.0)
+
+	## Bottom-right (above bottom panel)
+	_draw_node.draw_line(Vector2(vp_size.x - inset, bottom_y - 4), Vector2(vp_size.x - inset - corner_len, bottom_y - 4), col, 1.0)
+	_draw_node.draw_line(Vector2(vp_size.x - inset, bottom_y - 4), Vector2(vp_size.x - inset, bottom_y - 4 - corner_len), col, 1.0)
+
+
+## ── BRANCH CHOICE OVERLAY ────────────────────────────────────────────────────
 
 func _draw_branch_choice(vp_size: Vector2) -> void:
 	var font := ThemeDB.fallback_font
 	if not font or _branch_choices.is_empty():
 		return
 
-	## Semi-transparent overlay behind branch panel
-	_draw_node.draw_rect(Rect2(Vector2.ZERO, vp_size), Color(0, 0, 0, 0.3))
+	## Semi-transparent overlay
+	_draw_node.draw_rect(Rect2(Vector2.ZERO, vp_size), Color(0, 0, 0, 0.4))
 
 	## Center panel
-	var panel_w := 320.0
-	var panel_h := 180.0
+	var panel_w := 340.0
+	var panel_h := 190.0
 	var panel_x := (vp_size.x - panel_w) * 0.5
 	var panel_y := (vp_size.y - panel_h) * 0.5 - 30
 	var panel_rect := Rect2(panel_x, panel_y, panel_w, panel_h)
 
 	_draw_node.draw_rect(panel_rect, PANEL_COLOR)
-	_draw_node.draw_rect(panel_rect, Color(0, 1, 0.53, 0.5), false, 1.5)
+	_draw_node.draw_rect(panel_rect, BORDER_BRIGHT, false, 1.5)
 
 	var x := panel_x + 16
 	var y := panel_y + 24
 
 	## Title
 	_draw_node.draw_string(font, Vector2(x, y), "CHOOSE UPGRADE PATH", HORIZONTAL_ALIGNMENT_LEFT, -1, 14, ACCENT_COLOR)
-	y += 24
+	y += 6
+	_draw_node.draw_line(Vector2(x, y), Vector2(panel_x + panel_w - 16, y), BORDER_COLOR, 1.0)
+	y += 16
 
 	## Draw each branch option
 	for i in _branch_choices.size():
@@ -439,20 +567,20 @@ func _draw_branch_choice(vp_size: Vector2) -> void:
 		var key := str(i + 1)
 		var cost: int = branch.get("cost", 0)
 		var can_afford: bool = GameManager.scrap >= cost
-		var name_col: Color = ACCENT_COLOR if can_afford else Color(0.4, 0.4, 0.4)
-		var desc_col: Color = TEXT_COLOR if can_afford else Color(0.3, 0.3, 0.3)
+		var name_col: Color = ACCENT_COLOR if can_afford else Color(0.35, 0.35, 0.35)
+		var desc_col: Color = TEXT_COLOR if can_afford else Color(0.25, 0.25, 0.25)
 
 		## Option box
-		var opt_rect := Rect2(x, y - 12, panel_w - 32, 52)
-		_draw_node.draw_rect(opt_rect, Color(ACCENT_COLOR, 0.05))
+		var opt_rect := Rect2(x, y - 10, panel_w - 32, 52)
+		_draw_node.draw_rect(opt_rect, Color(ACCENT_COLOR, 0.04))
 		_draw_node.draw_rect(opt_rect, Color(ACCENT_COLOR, 0.2), false, 1.0)
 
 		## [1] Branch Name — $cost
-		_draw_node.draw_string(font, Vector2(x + 8, y + 4), "[%s] %s — $%d" % [key, branch.get("name", "???"), cost], HORIZONTAL_ALIGNMENT_LEFT, -1, 13, name_col)
+		_draw_node.draw_string(font, Vector2(x + 8, y + 6), "[%s] %s — $%d" % [key, branch.get("name", "???"), cost], HORIZONTAL_ALIGNMENT_LEFT, -1, 13, name_col)
 		## Description
-		_draw_node.draw_string(font, Vector2(x + 8, y + 22), branch.get("description", ""), HORIZONTAL_ALIGNMENT_LEFT, -1, 10, desc_col)
+		_draw_node.draw_string(font, Vector2(x + 8, y + 24), branch.get("description", ""), HORIZONTAL_ALIGNMENT_LEFT, -1, 10, desc_col)
 
 		y += 60
 
 	## ESC to cancel
-	_draw_node.draw_string(font, Vector2(x, y + 4), "[ESC] Cancel", HORIZONTAL_ALIGNMENT_LEFT, -1, 10, Color(0.5, 0.5, 0.5))
+	_draw_node.draw_string(font, Vector2(x, y + 4), "[ESC] Cancel", HORIZONTAL_ALIGNMENT_LEFT, -1, 10, Color(0.4, 0.4, 0.4))
