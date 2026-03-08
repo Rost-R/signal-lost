@@ -1,109 +1,72 @@
 {
-  "_comment": "Tower definitions for Signal Lost. All balance values are tunable here.",
+  "_comment": "Tower definitions for Signal Lost. GDD v2 aligned. All balance values tunable.",
   "towers": {
     "pulse_emitter": {
       "name": "Pulse Emitter",
       "description": "Focused energy beam. High single-target DPS.",
       "role": "single_target_dps",
-      "base_cost": 100,
-      "sell_refund_percent": 60,
-      "unlock_tier": 0,
-      "targeting": ["first", "last", "strongest", "weakest"],
+      "base_cost": 50,
+      "power_cost": 1,
+      "sell_refund_percent": 70,
       "stats": {
         "damage": 25,
         "attack_speed": 1.2,
-        "range": 3.5,
-        "projectile_speed": 800
+        "range": 3.5
       },
       "upgrades": [
-        {
-          "level": 2,
-          "cost": 75,
-          "damage": 40,
-          "attack_speed": 1.4,
-          "range": 4.0
-        },
-        {
-          "level": 3,
-          "cost": 150,
-          "damage": 65,
-          "attack_speed": 1.6,
-          "range": 4.5
-        }
+        { "level": 2, "cost": 80, "damage": 40, "attack_speed": 1.4, "range": 4.0 },
+        { "level": 3, "cost": 110, "damage": 65, "attack_speed": 1.6, "range": 4.5 }
       ],
       "synergies": {
-        "amplifier_adjacent": {
-          "description": "+15% damage when adjacent to Amplifier",
-          "effect": "damage_multiply",
-          "value": 1.15
-        },
         "cryo_frozen_target": {
           "description": "2x damage to frozen enemies",
           "effect": "damage_multiply_conditional",
           "condition": "target_frozen",
           "value": 2.0
+        },
+        "scrambler_adjacent": {
+          "description": "+20% damage when adjacent to Scrambler Dish",
+          "effect": "damage_multiply",
+          "value": 1.20
         }
       },
-      "visual": {
-        "color": "#00C8FF",
-        "glow_intensity": 0.8,
-        "projectile_type": "beam"
-      }
+      "visual": { "color": "#00C8FF" }
     },
     "arc_relay": {
       "name": "Arc Relay",
       "description": "Chain lightning that jumps between enemies. Excellent crowd control.",
       "role": "aoe_chain",
-      "base_cost": 150,
-      "sell_refund_percent": 60,
-      "unlock_tier": 0,
-      "targeting": ["first", "last", "strongest", "weakest"],
+      "base_cost": 70,
+      "power_cost": 1,
+      "sell_refund_percent": 70,
       "stats": {
         "damage": 15,
         "attack_speed": 0.8,
         "range": 3.0,
         "chain_count": 3,
-        "chain_range": 2.0,
         "chain_damage_falloff": 0.8
       },
       "upgrades": [
-        {
-          "level": 2,
-          "cost": 100,
-          "damage": 22,
-          "attack_speed": 0.9,
-          "chain_count": 4
-        },
-        {
-          "level": 3,
-          "cost": 200,
-          "damage": 30,
-          "attack_speed": 1.0,
-          "chain_count": 5
-        }
+        { "level": 2, "cost": 110, "damage": 22, "attack_speed": 0.9, "chain_count": 4 },
+        { "level": 3, "cost": 155, "damage": 30, "attack_speed": 1.0, "chain_count": 5 }
       ],
       "synergies": {
         "arc_relay_adjacent": {
-          "description": "+1 chain per adjacent Arc Relay",
+          "description": "+1 chain per adjacent Arc Relay (max +3)",
           "effect": "chain_count_add",
           "value": 1,
           "max_bonus": 3
         }
       },
-      "visual": {
-        "color": "#4488FF",
-        "glow_intensity": 1.0,
-        "projectile_type": "lightning"
-      }
+      "visual": { "color": "#4488FF" }
     },
     "cryo_node": {
       "name": "Cryo Node",
-      "description": "Freezing field that slows all enemies in range.",
+      "description": "Freezing field that slows all enemies in range. Freeze after exposure.",
       "role": "slow_aoe",
-      "base_cost": 120,
-      "sell_refund_percent": 60,
-      "unlock_tier": 0,
-      "targeting": ["area"],
+      "base_cost": 60,
+      "power_cost": 1,
+      "sell_refund_percent": 70,
       "stats": {
         "slow_percent": 40,
         "range": 2.5,
@@ -111,167 +74,94 @@
         "freeze_duration": 1.5
       },
       "upgrades": [
-        {
-          "level": 2,
-          "cost": 80,
-          "slow_percent": 55,
-          "range": 3.0,
-          "freeze_duration": 2.0
-        },
-        {
-          "level": 3,
-          "cost": 160,
-          "slow_percent": 70,
-          "range": 3.5,
-          "freeze_duration": 2.5
-        }
+        { "level": 2, "cost": 95, "slow_percent": 55, "range": 3.0, "freeze_duration": 2.0 },
+        { "level": 3, "cost": 130, "slow_percent": 70, "range": 3.5, "freeze_duration": 2.5 }
       ],
       "synergies": {
-        "pulse_frozen_bonus": {
-          "description": "Frozen enemies take 2x damage from Pulse Emitter",
-          "effect": "debuff_on_freeze",
-          "debuff_type": "pulse_vulnerability",
-          "value": 2.0
+        "prism_adjacent": {
+          "description": "Adjacent Prism Beam gets +30% damage",
+          "effect": "prism_damage_boost",
+          "value": 1.30
         }
       },
-      "visual": {
-        "color": "#88DDFF",
-        "glow_intensity": 0.6,
-        "projectile_type": "field"
-      }
+      "visual": { "color": "#88DDFF" }
     },
-    "data_siphon": {
-      "name": "Data Siphon",
-      "description": "Extracts resources from defeated enemies. Passive income.",
-      "role": "economy",
-      "base_cost": 200,
-      "sell_refund_percent": 60,
-      "unlock_tier": 1,
-      "targeting": ["passive"],
+    "scrambler_dish": {
+      "name": "Scrambler Dish",
+      "description": "Debuff tower. Reduces enemy armor/resistance. Opens damage windows.",
+      "role": "debuff",
+      "base_cost": 75,
+      "power_cost": 1,
+      "sell_refund_percent": 70,
       "stats": {
-        "resource_per_kill": 5,
+        "damage": 8,
+        "attack_speed": 0.9,
         "range": 3.0,
-        "passive_income_per_wave": 15
+        "debuff_percent": 25,
+        "debuff_duration": 3.0
       },
       "upgrades": [
-        {
-          "level": 2,
-          "cost": 120,
-          "resource_per_kill": 8,
-          "range": 3.5,
-          "passive_income_per_wave": 25
-        },
-        {
-          "level": 3,
-          "cost": 240,
-          "resource_per_kill": 12,
-          "range": 4.0,
-          "passive_income_per_wave": 40
-        }
+        { "level": 2, "cost": 120, "damage": 12, "attack_speed": 1.1, "range": 3.5, "debuff_percent": 35, "debuff_duration": 3.5 },
+        { "level": 3, "cost": 165, "damage": 18, "attack_speed": 1.3, "range": 4.0, "debuff_percent": 50, "debuff_duration": 4.0 }
       ],
       "synergies": {
-        "transmission_bonus": {
-          "description": "+10% yield per decoded transmission this run",
-          "effect": "income_multiply_per_transmission",
-          "value_per_transmission": 0.10,
-          "max_bonus": 1.0
+        "pulse_adjacent": {
+          "description": "Adjacent Pulse Emitter gets +20% damage",
+          "effect": "pulse_damage_boost",
+          "value": 1.20
         }
       },
-      "visual": {
-        "color": "#00FF88",
-        "glow_intensity": 0.5,
-        "projectile_type": "none"
-      }
+      "visual": { "color": "#DB70FF" }
     },
-    "amplifier": {
-      "name": "Amplifier",
-      "description": "Boosts all adjacent towers. Cannot boost other Amplifiers.",
-      "role": "support",
-      "base_cost": 180,
-      "sell_refund_percent": 60,
-      "unlock_tier": 1,
-      "targeting": ["passive"],
+    "prism_beam": {
+      "name": "Prism Beam",
+      "description": "Linear piercing beam. Hits all enemies in a line. High positional payoff.",
+      "role": "linear_aoe_dps",
+      "base_cost": 90,
+      "power_cost": 2,
+      "sell_refund_percent": 70,
       "stats": {
-        "buff_damage_percent": 20,
-        "buff_speed_percent": 10,
-        "buff_range_percent": 10
+        "damage": 22,
+        "attack_speed": 0.6,
+        "range": 4.5,
+        "beam_width": 10
       },
       "upgrades": [
-        {
-          "level": 2,
-          "cost": 120,
-          "buff_damage_percent": 30,
-          "buff_speed_percent": 15,
-          "buff_range_percent": 15
-        },
-        {
-          "level": 3,
-          "cost": 250,
-          "buff_damage_percent": 45,
-          "buff_speed_percent": 20,
-          "buff_range_percent": 20
-        }
+        { "level": 2, "cost": 145, "damage": 35, "attack_speed": 0.7, "range": 5.0, "beam_width": 14 },
+        { "level": 3, "cost": 200, "damage": 55, "attack_speed": 0.8, "range": 6.0, "beam_width": 18 }
       ],
       "synergies": {
-        "surrounded_bonus": {
-          "description": "Effect doubles if surrounded by 3+ non-Amplifier towers",
-          "effect": "self_buff_conditional",
-          "condition": "adjacent_non_amplifier_count_gte_3",
-          "multiplier": 2.0
+        "cryo_adjacent": {
+          "description": "+30% damage when adjacent to Cryo Node",
+          "effect": "damage_multiply",
+          "value": 1.30
         }
       },
-      "rules": {
-        "cannot_buff_amplifier": true,
-        "max_synergy_cap_percent": 200
-      },
-      "visual": {
-        "color": "#FFDD44",
-        "glow_intensity": 0.9,
-        "projectile_type": "none"
-      }
+      "visual": { "color": "#FFD700" }
     },
-    "shield_generator": {
-      "name": "Shield Generator",
-      "description": "Projects a shield that absorbs damage to the relay core.",
-      "role": "defense",
-      "base_cost": 250,
-      "sell_refund_percent": 60,
-      "unlock_tier": 2,
-      "targeting": ["passive"],
+    "salvage_matrix": {
+      "name": "Salvage Matrix",
+      "description": "Economy tower. Bonus scrap from kills in range, passive income between waves.",
+      "role": "economy",
+      "base_cost": 80,
+      "power_cost": 1,
+      "sell_refund_percent": 70,
       "stats": {
-        "shield_hp": 50,
-        "recharge_rate": 2.0,
-        "recharge_delay": 5.0
+        "bonus_scrap": 2,
+        "passive_income": 3,
+        "range": 3.0
       },
       "upgrades": [
-        {
-          "level": 2,
-          "cost": 150,
-          "shield_hp": 80,
-          "recharge_rate": 3.0,
-          "recharge_delay": 4.0
-        },
-        {
-          "level": 3,
-          "cost": 300,
-          "shield_hp": 120,
-          "recharge_rate": 5.0,
-          "recharge_delay": 3.0
-        }
+        { "level": 2, "cost": 130, "bonus_scrap": 4, "passive_income": 6, "range": 3.5 },
+        { "level": 3, "cost": 175, "bonus_scrap": 6, "passive_income": 10, "range": 4.0 }
       ],
       "synergies": {
-        "cryo_recharge_bonus": {
-          "description": "Recharges 50% faster when adjacent to Cryo Node",
-          "effect": "recharge_rate_multiply",
-          "condition": "adjacent_cryo_node",
-          "value": 1.5
+        "greedy_builds": {
+          "description": "Enables greedy high-cost builds via economy advantage",
+          "effect": "economy_boost"
         }
       },
-      "visual": {
-        "color": "#AA44FF",
-        "glow_intensity": 0.7,
-        "projectile_type": "none"
-      }
+      "visual": { "color": "#33E566" }
     }
   }
 }

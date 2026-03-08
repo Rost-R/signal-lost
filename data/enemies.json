@@ -1,9 +1,9 @@
 {
-  "_comment": "Enemy definitions for Signal Lost. All balance values are tunable here.",
+  "_comment": "Enemy definitions for Signal Lost. GDD v2 aligned. 6 base + 2 bosses.",
   "enemies": {
     "glitch_swarm": {
       "name": "Glitch Swarm",
-      "description": "Fast, fragile, comes in masses. Overwhelms through sheer numbers.",
+      "description": "Fast, fragile, comes in masses. Teaches AoE and choke points.",
       "tier": "common",
       "stats": {
         "hp": 30,
@@ -14,195 +14,187 @@
       },
       "spawn": {
         "min_wave": 1,
-        "group_size_min": 5,
-        "group_size_max": 12,
         "spawn_interval": 0.3
       },
-      "resistances": {
-        "freeze_resistance": 0.0,
-        "chain_resistance": 0.0
-      },
-      "scaling_per_wave": {
-        "hp_multiply": 1.15,
-        "speed_multiply": 1.02,
-        "group_size_add": 1
-      },
-      "visual": {
-        "color": "#FF2244",
-        "size": 0.6,
-        "animation": "glitch_flicker"
-      }
+      "visual": { "color": "#FF2244", "size": 0.5 }
     },
-    "corrupted_signal": {
-      "name": "Corrupted Signal",
-      "description": "Medium threat with energy shields. Requires focused fire to break through.",
+    "corrupted_carrier": {
+      "name": "Corrupted Carrier",
+      "description": "Slow tank. Absorbs damage, tests sustained DPS.",
       "tier": "common",
       "stats": {
-        "hp": 80,
-        "speed": 70,
+        "hp": 120,
+        "speed": 50,
         "damage_to_core": 2,
-        "armor": 5,
-        "shield": 30,
+        "armor": 8,
         "reward": 15
       },
       "spawn": {
-        "min_wave": 1,
-        "group_size_min": 2,
-        "group_size_max": 5,
+        "min_wave": 2,
         "spawn_interval": 0.8
       },
-      "resistances": {
-        "freeze_resistance": 0.2,
-        "chain_resistance": 0.5
-      },
-      "scaling_per_wave": {
-        "hp_multiply": 1.2,
-        "shield_multiply": 1.15,
-        "armor_add": 1
-      },
-      "visual": {
-        "color": "#FF6644",
-        "size": 0.9,
-        "animation": "static_pulse"
-      }
+      "visual": { "color": "#FF6644", "size": 0.9 }
     },
-    "data_leech": {
-      "name": "Data Leech",
-      "description": "Slow but dangerous. Drains tower energy on contact, disabling them briefly.",
-      "tier": "elite",
+    "mirror_fragment": {
+      "name": "Mirror Fragment",
+      "description": "Splits into smaller copies on death. Breaks overkill builds.",
+      "tier": "common",
       "stats": {
-        "hp": 150,
-        "speed": 40,
-        "damage_to_core": 3,
-        "armor": 10,
-        "reward": 25,
-        "drain_range": 1.5,
-        "drain_duration": 2.0
+        "hp": 60,
+        "speed": 70,
+        "damage_to_core": 1,
+        "armor": 2,
+        "reward": 12
+      },
+      "abilities": {
+        "split": {
+          "count": 2,
+          "fragment_hp_ratio": 0.4,
+          "fragment_speed_mult": 1.3,
+          "max_generation": 1
+        }
       },
       "spawn": {
         "min_wave": 3,
-        "group_size_min": 1,
-        "group_size_max": 3,
-        "spawn_interval": 1.5
+        "spawn_interval": 1.0
       },
-      "resistances": {
-        "freeze_resistance": 0.3,
-        "chain_resistance": 0.0
+      "visual": { "color": "#CCCCFF", "size": 0.7 }
+    },
+    "null_shield": {
+      "name": "Null Shield",
+      "description": "Front shield absorbs first-hit damage. Requires debuff or bypass.",
+      "tier": "common",
+      "stats": {
+        "hp": 80,
+        "speed": 65,
+        "damage_to_core": 2,
+        "armor": 3,
+        "reward": 18
       },
       "abilities": {
-        "tower_drain": {
-          "description": "Disables towers within drain_range for drain_duration seconds",
-          "range": 1.5,
-          "duration": 2.0,
-          "cooldown": 5.0
+        "front_shield": {
+          "absorb_percent": 50,
+          "max_absorb_per_hit": 15,
+          "disabled_by_debuff_percent": 30
         }
-      },
-      "scaling_per_wave": {
-        "hp_multiply": 1.25,
-        "drain_duration_add": 0.2
-      },
-      "visual": {
-        "color": "#884422",
-        "size": 1.1,
-        "animation": "leech_pulse"
-      }
-    },
-    "phantom_burst": {
-      "name": "Phantom Burst",
-      "description": "Invisible until close. Teleports past defenses if undetected.",
-      "tier": "elite",
-      "stats": {
-        "hp": 60,
-        "speed": 90,
-        "damage_to_core": 4,
-        "armor": 0,
-        "reward": 30,
-        "stealth_distance": 4.0,
-        "teleport_distance": 3.0
       },
       "spawn": {
         "min_wave": 4,
-        "group_size_min": 1,
-        "group_size_max": 2,
-        "spawn_interval": 2.0
+        "spawn_interval": 1.2
       },
-      "resistances": {
-        "freeze_resistance": 0.5,
-        "chain_resistance": 0.8
+      "visual": { "color": "#4444AA", "size": 0.75 }
+    },
+    "phase_leech": {
+      "name": "Phase Leech",
+      "description": "Teleports forward along path periodically. Punishes linear kill zones.",
+      "tier": "elite",
+      "stats": {
+        "hp": 50,
+        "speed": 80,
+        "damage_to_core": 3,
+        "armor": 0,
+        "reward": 22
       },
       "abilities": {
-        "stealth": {
-          "description": "Invisible to towers beyond stealth_distance. Amplifier reveals at 2x range.",
-          "reveal_by": "amplifier",
-          "reveal_range_multiplier": 2.0
-        },
-        "teleport": {
-          "description": "Teleports forward when first damaged",
-          "trigger": "first_hit",
-          "distance": 3.0,
-          "cooldown": 8.0
+        "phase_step": {
+          "cooldown": 4.0,
+          "path_points_skip": 2
         }
-      },
-      "scaling_per_wave": {
-        "hp_multiply": 1.2,
-        "teleport_distance_add": 0.5
-      },
-      "visual": {
-        "color": "#4444AA",
-        "size": 0.7,
-        "animation": "phase_shift"
-      }
-    },
-    "overload_core": {
-      "name": "Overload Core",
-      "description": "Massive boss entity. Spawns minions, has damage phases, requires full synergy.",
-      "tier": "boss",
-      "stats": {
-        "hp": 2000,
-        "speed": 25,
-        "damage_to_core": 10,
-        "armor": 20,
-        "reward": 200
       },
       "spawn": {
-        "min_wave": 8,
-        "group_size_min": 1,
-        "group_size_max": 1,
-        "spawn_interval": 0
+        "min_wave": 5,
+        "spawn_interval": 1.5
       },
-      "resistances": {
-        "freeze_resistance": 0.7,
-        "chain_resistance": 0.5
+      "visual": { "color": "#66CC99", "size": 0.6 }
+    },
+    "parasite_packet": {
+      "name": "Parasite Packet",
+      "description": "Heals nearby enemies periodically. Priority target.",
+      "tier": "elite",
+      "stats": {
+        "hp": 45,
+        "speed": 75,
+        "damage_to_core": 1,
+        "armor": 0,
+        "reward": 20
       },
       "abilities": {
-        "spawn_minions": {
-          "description": "Spawns Glitch Swarm minions every 10 seconds",
-          "minion_type": "glitch_swarm",
-          "count": 4,
-          "interval": 10.0
-        },
-        "damage_phases": {
-          "description": "At 66% and 33% HP, gains temporary immunity and spawns a wave",
-          "thresholds": [0.66, 0.33],
-          "immunity_duration": 3.0,
-          "spawn_on_phase": "corrupted_signal",
-          "spawn_count": 3
-        },
-        "emp_pulse": {
-          "description": "Periodically disables all towers in range for 1.5 seconds",
-          "range": 4.0,
-          "duration": 1.5,
-          "interval": 15.0
+        "heal_aura": {
+          "range_px": 96,
+          "heal_amount": 8,
+          "heal_interval": 2.0
         }
       },
-      "scaling_per_wave": {
-        "hp_multiply": 1.0
+      "spawn": {
+        "min_wave": 6,
+        "spawn_interval": 1.0
       },
-      "visual": {
-        "color": "#AA44FF",
-        "size": 2.0,
-        "animation": "overload_pulse"
-      }
+      "visual": { "color": "#99FF33", "size": 0.55 }
+    },
+    "the_choir": {
+      "name": "The Choir",
+      "description": "Boss. Spawns echo units, strengthens from unbroken passes. Tests multi-lane response.",
+      "tier": "boss",
+      "stats": {
+        "hp": 2500,
+        "speed": 25,
+        "damage_to_core": 10,
+        "armor": 15,
+        "reward": 250
+      },
+      "abilities": {
+        "spawn_echoes": {
+          "interval": 6.0,
+          "echo_hp_ratio": 0.1,
+          "echo_speed_mult": 1.5,
+          "max_echoes": 4
+        }
+      },
+      "spawn": {
+        "min_wave": 10,
+        "spawn_interval": 0
+      },
+      "visual": { "color": "#AA44FF", "size": 1.8 }
+    },
+    "black_relay": {
+      "name": "Black Relay",
+      "description": "Boss. EMP pulses disable nearby towers. Tests backup builds and resilience.",
+      "tier": "boss",
+      "stats": {
+        "hp": 3000,
+        "speed": 22,
+        "damage_to_core": 12,
+        "armor": 20,
+        "reward": 300
+      },
+      "abilities": {
+        "emp_pulse": {
+          "interval": 8.0,
+          "range_px": 192,
+          "disable_duration": 3.0
+        }
+      },
+      "spawn": {
+        "min_wave": 10,
+        "spawn_interval": 0
+      },
+      "visual": { "color": "#262633", "size": 2.0 }
+    }
+  },
+  "elite_modifiers": {
+    "_comment": "Applied to random enemies in later waves",
+    "encrypted": {
+      "description": "Enhanced control resistance",
+      "freeze_resistance": 0.5,
+      "slow_resistance": 0.3
+    },
+    "overclocked": {
+      "description": "High speed",
+      "speed_multiply": 1.5
+    },
+    "ghosted": {
+      "description": "Reduced targeting probability",
+      "targeting_reduction": 0.4
     }
   }
 }

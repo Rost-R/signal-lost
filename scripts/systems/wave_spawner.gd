@@ -12,10 +12,13 @@ extends Node
 
 ## Preload scripts to avoid class_name resolution issues
 const GlitchSwarmScript = preload("res://scripts/enemies/glitch_swarm.gd")
-const CorruptedSignalScript = preload("res://scripts/enemies/corrupted_signal.gd")
-const DataLeechScript = preload("res://scripts/enemies/data_leech.gd")
-const PhantomBurstScript = preload("res://scripts/enemies/phantom_burst.gd")
-const OverloadCoreScript = preload("res://scripts/enemies/overload_core.gd")
+const CorruptedCarrierScript = preload("res://scripts/enemies/corrupted_carrier.gd")
+const MirrorFragmentScript = preload("res://scripts/enemies/mirror_fragment.gd")
+const NullShieldScript = preload("res://scripts/enemies/null_shield.gd")
+const PhaseLeechScript = preload("res://scripts/enemies/phase_leech.gd")
+const ParasitePacketScript = preload("res://scripts/enemies/parasite_packet.gd")
+const TheChoirScript = preload("res://scripts/enemies/the_choir.gd")
+const BlackRelayScript = preload("res://scripts/enemies/black_relay.gd")
 
 
 ## ============================================================================
@@ -82,7 +85,7 @@ func setup(pathfinder: Node, grid_manager: Node2D) -> void:
 	_grid_manager = grid_manager
 
 
-## Start spawning a wave by number (1-8).
+## Start spawning a wave by number (1-10).
 func start_wave(wave_number: int) -> void:
 	var wave_key := "wave_%d" % wave_number
 	var wave: Dictionary = _wave_data.get("wave_templates", {}).get(wave_key, {})
@@ -209,10 +212,13 @@ func _get_spawn_interval(enemy_id: String) -> float:
 	## Default intervals per enemy type
 	match enemy_id:
 		"glitch_swarm": return 0.3
-		"corrupted_signal": return 0.8
-		"data_leech": return 1.5
-		"phantom_burst": return 2.0
-		"overload_core": return 0.0
+		"corrupted_carrier": return 0.8
+		"mirror_fragment": return 1.0
+		"null_shield": return 1.2
+		"phase_leech": return 1.5
+		"parasite_packet": return 1.0
+		"the_choir": return 0.0
+		"black_relay": return 0.0
 		_: return 0.5
 
 
@@ -233,10 +239,13 @@ func _load_enemy_scenes() -> void:
 	## For MVP, we create scenes programmatically since we use _draw()
 	## In production these would be .tscn files
 	_enemy_scenes["glitch_swarm"] = _create_enemy_scene(GlitchSwarmScript)
-	_enemy_scenes["corrupted_signal"] = _create_enemy_scene(CorruptedSignalScript)
-	_enemy_scenes["data_leech"] = _create_enemy_scene(DataLeechScript)
-	_enemy_scenes["phantom_burst"] = _create_enemy_scene(PhantomBurstScript)
-	_enemy_scenes["overload_core"] = _create_enemy_scene(OverloadCoreScript)
+	_enemy_scenes["corrupted_carrier"] = _create_enemy_scene(CorruptedCarrierScript)
+	_enemy_scenes["mirror_fragment"] = _create_enemy_scene(MirrorFragmentScript)
+	_enemy_scenes["null_shield"] = _create_enemy_scene(NullShieldScript)
+	_enemy_scenes["phase_leech"] = _create_enemy_scene(PhaseLeechScript)
+	_enemy_scenes["parasite_packet"] = _create_enemy_scene(ParasitePacketScript)
+	_enemy_scenes["the_choir"] = _create_enemy_scene(TheChoirScript)
+	_enemy_scenes["black_relay"] = _create_enemy_scene(BlackRelayScript)
 
 
 func _create_enemy_scene(script: GDScript) -> PackedScene:

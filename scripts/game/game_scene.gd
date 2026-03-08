@@ -6,7 +6,7 @@
 ## enemies, waves, pathfinding, and HUD.
 ##
 ## @author Signal Lost Team
-## @version 0.1.0
+## @version 0.2.0
 extends Node2D
 
 ## Preload all scripts to avoid class_name resolution issues
@@ -18,10 +18,24 @@ const GameHUDScript = preload("res://scripts/ui/game_hud.gd")
 const PulseEmitterScript = preload("res://scripts/towers/pulse_emitter.gd")
 const ArcRelayScript = preload("res://scripts/towers/arc_relay.gd")
 const CryoNodeScript = preload("res://scripts/towers/cryo_node.gd")
-const DataSiphonScript = preload("res://scripts/towers/data_siphon.gd")
-const AmplifierScript = preload("res://scripts/towers/amplifier.gd")
-const ShieldGeneratorScript = preload("res://scripts/towers/shield_generator.gd")
+const ScramblerDishScript = preload("res://scripts/towers/scrambler_dish.gd")
+const PrismBeamScript = preload("res://scripts/towers/prism_beam.gd")
+const SalvageMatrixScript = preload("res://scripts/towers/salvage_matrix.gd")
 const TowerBaseScript = preload("res://scripts/towers/tower_base.gd")
+
+
+## ============================================================================
+## TOWER POWER COSTS — centralized lookup
+## ============================================================================
+
+const TOWER_POWER_COSTS := {
+	"pulse_emitter": 1,
+	"arc_relay": 1,
+	"cryo_node": 1,
+	"scrambler_dish": 1,
+	"prism_beam": 2,
+	"salvage_matrix": 1,
+}
 
 
 ## ============================================================================
@@ -101,9 +115,9 @@ func _setup_systems() -> void:
 	_tower_scenes["pulse_emitter"] = _create_tower_scene(PulseEmitterScript)
 	_tower_scenes["arc_relay"] = _create_tower_scene(ArcRelayScript)
 	_tower_scenes["cryo_node"] = _create_tower_scene(CryoNodeScript)
-	_tower_scenes["data_siphon"] = _create_tower_scene(DataSiphonScript)
-	_tower_scenes["amplifier"] = _create_tower_scene(AmplifierScript)
-	_tower_scenes["shield_generator"] = _create_tower_scene(ShieldGeneratorScript)
+	_tower_scenes["scrambler_dish"] = _create_tower_scene(ScramblerDishScript)
+	_tower_scenes["prism_beam"] = _create_tower_scene(PrismBeamScript)
+	_tower_scenes["salvage_matrix"] = _create_tower_scene(SalvageMatrixScript)
 
 
 func _connect_signals() -> void:
@@ -142,7 +156,7 @@ func _on_game_over(victory: bool) -> void:
 	else:
 		print("=== GAME OVER — Core destroyed ===")
 	print("Waves survived: %d" % GameManager.current_wave)
-	print("Resources earned: %d" % RunManager.resources_earned)
+	print("Scrap earned: %d" % RunManager.scrap_earned)
 	print("Enemies killed: %d" % RunManager.enemies_killed)
 
 	get_tree().create_timer(3.0).timeout.connect(func():
@@ -152,39 +166,11 @@ func _on_game_over(victory: bool) -> void:
 
 
 ## ============================================================================
-## SHIELD INTEGRATION
+## ENEMY SPAWN HANDLING
 ## ============================================================================
 
-## Intercept enemy reaching core — shields absorb damage first.
-func _on_enemy_spawned(enemy: Node2D) -> void:
-	if enemy.has_signal("enemy_reached_core"):
-		enemy.enemy_reached_core.connect(_on_enemy_reached_core_with_shield)
-
-
-func _on_enemy_reached_core_with_shield(enemy: Node2D) -> void:
-	var damage: int = enemy.damage_to_core if "damage_to_core" in enemy else 1
-
-	## Try to absorb damage through shield generators
-	var shield_towers := _get_shield_generators()
-	for shield in shield_towers:
-		if damage <= 0:
-			break
-		damage = shield.absorb_damage(damage)
-
-	## Apply remaining damage to core (subtract the already-applied damage and re-add difference)
-	## The enemy_base already called damage_core, so we compensate by healing the absorbed amount
-	var absorbed: int = (enemy.damage_to_core if "damage_to_core" in enemy else 1) - damage
-	if absorbed > 0:
-		GameManager.core_hp += absorbed  # Heal back what shields absorbed
-
-
-func _get_shield_generators() -> Array[Node2D]:
-	var result: Array[Node2D] = []
-	for pos in _grid.get_all_tower_positions():
-		var tower: Node2D = _grid.get_tower_at(pos)
-		if tower and tower.has_method("absorb_damage"):
-			result.append(tower)
-	return result
+func _on_enemy_spawned(_enemy: Node2D) -> void:
+	pass  # Future: connect signals for reward choices, transmissions, etc.
 
 
 ## ============================================================================
@@ -249,11 +235,20 @@ func _handle_right_click(world_pos: Vector2) -> void:
 
 func _place_tower(grid_pos: Vector2i, tower_id: String) -> void:
 	var cost: int = _get_tower_cost(tower_id)
-	if not GameManager.spend_resources(cost):
+	var p_cost: int = TOWER_POWER_COSTS.get(tower_id, 1)
+
+	## Check scrap
+	if not GameManager.spend_scrap(cost):
+		return
+
+	## Check power
+	if not GameManager.can_use_power(p_cost):
+		GameManager.add_scrap(cost)  # Refund scrap
 		return
 
 	var scene: PackedScene = _tower_scenes.get(tower_id)
 	if not scene:
+		GameManager.add_scrap(cost)
 		return
 
 	var tower: Node2D = scene.instantiate()
@@ -262,15 +257,18 @@ func _place_tower(grid_pos: Vector2i, tower_id: String) -> void:
 
 	if not _grid.place_tower(grid_pos, tower):
 		tower.queue_free()
-		GameManager.add_resources(cost)
+		GameManager.add_scrap(cost)
 		return
 
+	GameManager.use_power(p_cost)
 	_recalculate_synergies(grid_pos)
 
 
 func _sell_tower(grid_pos: Vector2i, tower: Node2D) -> void:
 	var refund: int = tower.get_sell_value()
-	GameManager.add_resources(refund)
+	var p_cost: int = tower.power_cost if "power_cost" in tower else 1
+	GameManager.add_scrap(refund)
+	GameManager.release_power(p_cost)
 	var adj_positions: Array[Vector2i] = _grid.get_adjacent_towers(grid_pos)
 	_grid.remove_tower(grid_pos)
 	tower.queue_free()
@@ -310,24 +308,23 @@ func _apply_synergies_for(grid_pos: Vector2i) -> void:
 			continue
 		var adj_id: String = adj.get_tower_id()
 
-		## Amplifier boosts adjacent non-amplifiers
-		if adj_id == "amplifier" and tower_id != "amplifier":
-			var non_amp_count: int = _grid.count_adjacent_non_amplifier(adj.grid_position)
-			if adj.has_method("get_buff_values"):
-				var buffs: Dictionary = adj.get_buff_values(non_amp_count)
-				damage_mult += buffs.get("damage", 0.0)
-				speed_mult += buffs.get("speed", 0.0)
-				range_mult += buffs.get("range", 0.0)
+		## Salvage Matrix boosts adjacent towers' scrap generation indirectly
+		## (handled within salvage_matrix.gd itself)
+
+		## Scrambler Dish + Pulse synergy: Pulse gets +20% damage near Scrambler
+		if adj_id == "scrambler_dish" and tower_id == "pulse_emitter":
+			damage_mult += 0.20
 
 	## Arc Relay chain bonus from adjacent Arc Relays
 	if tower.has_method("set_chain_bonus"):
 		var arc_count: int = _grid.count_adjacent_of_type(grid_pos, "arc_relay")
 		tower.set_chain_bonus(arc_count)
 
-	## Shield Generator cryo adjacency synergy
-	if tower.has_method("set_cryo_adjacent"):
-		var has_cryo: bool = _grid.count_adjacent_of_type(grid_pos, "cryo_node") > 0
-		tower.set_cryo_adjacent(has_cryo)
+	## Cryo + Prism synergy: Prism Beam gets +30% damage near Cryo
+	if tower_id == "prism_beam":
+		var cryo_count: int = _grid.count_adjacent_of_type(grid_pos, "cryo_node")
+		if cryo_count > 0:
+			damage_mult += 0.30
 
 	tower.apply_synergy(damage_mult, speed_mult, range_mult)
 
@@ -338,13 +335,13 @@ func _apply_synergies_for(grid_pos: Vector2i) -> void:
 
 func _get_tower_cost(tower_id: String) -> int:
 	match tower_id:
-		"pulse_emitter": return 100
-		"arc_relay": return 150
-		"cryo_node": return 120
-		"data_siphon": return 200
-		"amplifier": return 180
-		"shield_generator": return 250
-		_: return 100
+		"pulse_emitter": return 50
+		"arc_relay": return 70
+		"cryo_node": return 60
+		"scrambler_dish": return 75
+		"prism_beam": return 90
+		"salvage_matrix": return 80
+		_: return 50
 
 
 func _create_tower_scene(script: GDScript) -> PackedScene:

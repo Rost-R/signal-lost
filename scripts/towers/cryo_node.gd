@@ -20,8 +20,8 @@ extends "res://scripts/towers/tower_base.gd"
 
 const UPGRADE_DATA := [
 	{},
-	{ "slow_percent": 55.0, "range": 3.0, "freeze_duration": 2.0, "cost": 80 },
-	{ "slow_percent": 70.0, "range": 3.5, "freeze_duration": 2.5, "cost": 160 },
+	{ "slow_percent": 55.0, "range": 3.0, "freeze_duration": 2.0, "cost": 95 },
+	{ "slow_percent": 70.0, "range": 3.5, "freeze_duration": 2.5, "cost": 130 },
 ]
 
 const FREEZE_THRESHOLD := 3.0  # Seconds of continuous slow before freeze
@@ -48,7 +48,8 @@ func _init() -> void:
 	base_damage = 0.0
 	base_attack_speed = 0.0  # Not attack-based
 	base_range = 2.5
-	base_cost = 120
+	base_cost = 60
+	power_cost = 1
 	tower_color = Color(0.53, 0.87, 1)  # #88DDFF
 
 

@@ -1,85 +1,102 @@
 {
-  "_comment": "Wave compositions for Signal Lost. 8 waves per run. Compositions scale with wave number.",
+  "_comment": "Wave compositions for Signal Lost. 10 waves per run (9 regular + 1 boss). GDD v2 aligned.",
   "wave_templates": {
     "wave_1": {
       "description": "Introduction — easy swarm only",
       "groups": [
         { "enemy": "glitch_swarm", "count": 8, "delay": 0.0 }
       ],
-      "reward_resources": 50,
-      "decoded_transmissions_reward": 1
+      "reward_scrap": 30
     },
     "wave_2": {
-      "description": "Introduce shielded enemies",
+      "description": "Introduce Corrupted Carrier (tank)",
       "groups": [
         { "enemy": "glitch_swarm", "count": 10, "delay": 0.0 },
-        { "enemy": "corrupted_signal", "count": 3, "delay": 5.0 }
+        { "enemy": "corrupted_carrier", "count": 2, "delay": 5.0 }
       ],
-      "reward_resources": 60,
-      "decoded_transmissions_reward": 1
+      "reward_scrap": 35
     },
     "wave_3": {
-      "description": "First elite enemy — Data Leech",
+      "description": "Mirror Fragment splits on death",
       "groups": [
         { "enemy": "glitch_swarm", "count": 12, "delay": 0.0 },
-        { "enemy": "corrupted_signal", "count": 4, "delay": 3.0 },
-        { "enemy": "data_leech", "count": 1, "delay": 8.0 }
+        { "enemy": "corrupted_carrier", "count": 3, "delay": 3.0 },
+        { "enemy": "mirror_fragment", "count": 2, "delay": 8.0 }
       ],
-      "reward_resources": 75,
-      "decoded_transmissions_reward": 2
+      "reward_scrap": 40
     },
     "wave_4": {
-      "description": "Stealth threat introduced",
+      "description": "Null Shield requires debuff to handle",
       "groups": [
-        { "enemy": "glitch_swarm", "count": 15, "delay": 0.0 },
-        { "enemy": "phantom_burst", "count": 2, "delay": 4.0 },
-        { "enemy": "corrupted_signal", "count": 5, "delay": 6.0 }
+        { "enemy": "glitch_swarm", "count": 14, "delay": 0.0 },
+        { "enemy": "null_shield", "count": 3, "delay": 4.0 },
+        { "enemy": "corrupted_carrier", "count": 4, "delay": 6.0 }
       ],
-      "reward_resources": 85,
-      "decoded_transmissions_reward": 2
+      "reward_scrap": 45
     },
     "wave_5": {
-      "description": "Mixed assault — all common and elite types",
+      "description": "Phase Leech teleports past defenses",
       "groups": [
-        { "enemy": "glitch_swarm", "count": 18, "delay": 0.0 },
-        { "enemy": "corrupted_signal", "count": 6, "delay": 2.0 },
-        { "enemy": "data_leech", "count": 2, "delay": 6.0 },
-        { "enemy": "phantom_burst", "count": 2, "delay": 10.0 }
+        { "enemy": "glitch_swarm", "count": 16, "delay": 0.0 },
+        { "enemy": "corrupted_carrier", "count": 4, "delay": 2.0 },
+        { "enemy": "phase_leech", "count": 2, "delay": 6.0 },
+        { "enemy": "mirror_fragment", "count": 2, "delay": 9.0 }
       ],
-      "reward_resources": 100,
-      "decoded_transmissions_reward": 3
+      "reward_scrap": 50
     },
     "wave_6": {
-      "description": "Heavy assault — more elites",
+      "description": "Parasite Packet heals neighbors — priority target",
       "groups": [
-        { "enemy": "glitch_swarm", "count": 22, "delay": 0.0 },
-        { "enemy": "corrupted_signal", "count": 8, "delay": 2.0 },
-        { "enemy": "data_leech", "count": 3, "delay": 5.0 },
-        { "enemy": "phantom_burst", "count": 3, "delay": 8.0 }
+        { "enemy": "glitch_swarm", "count": 18, "delay": 0.0 },
+        { "enemy": "corrupted_carrier", "count": 5, "delay": 2.0 },
+        { "enemy": "parasite_packet", "count": 2, "delay": 5.0 },
+        { "enemy": "null_shield", "count": 3, "delay": 8.0 }
       ],
-      "reward_resources": 120,
-      "decoded_transmissions_reward": 3
+      "reward_scrap": 55
     },
     "wave_7": {
-      "description": "Pre-boss gauntlet — maximum pressure",
+      "description": "Full enemy roster — mixed assault",
       "groups": [
-        { "enemy": "glitch_swarm", "count": 25, "delay": 0.0 },
-        { "enemy": "corrupted_signal", "count": 10, "delay": 1.0 },
-        { "enemy": "data_leech", "count": 3, "delay": 4.0 },
-        { "enemy": "phantom_burst", "count": 4, "delay": 7.0 }
+        { "enemy": "glitch_swarm", "count": 20, "delay": 0.0 },
+        { "enemy": "corrupted_carrier", "count": 6, "delay": 1.0 },
+        { "enemy": "mirror_fragment", "count": 3, "delay": 4.0 },
+        { "enemy": "phase_leech", "count": 3, "delay": 7.0 },
+        { "enemy": "parasite_packet", "count": 2, "delay": 10.0 }
       ],
-      "reward_resources": 150,
-      "decoded_transmissions_reward": 4
+      "reward_scrap": 60
     },
     "wave_8": {
-      "description": "BOSS WAVE — Overload Core with minion support",
+      "description": "Heavy assault — all types with high pressure",
+      "groups": [
+        { "enemy": "glitch_swarm", "count": 24, "delay": 0.0 },
+        { "enemy": "corrupted_carrier", "count": 8, "delay": 1.0 },
+        { "enemy": "null_shield", "count": 4, "delay": 4.0 },
+        { "enemy": "mirror_fragment", "count": 4, "delay": 6.0 },
+        { "enemy": "phase_leech", "count": 3, "delay": 9.0 },
+        { "enemy": "parasite_packet", "count": 3, "delay": 12.0 }
+      ],
+      "reward_scrap": 70
+    },
+    "wave_9": {
+      "description": "Pre-boss gauntlet — maximum pressure",
+      "groups": [
+        { "enemy": "glitch_swarm", "count": 28, "delay": 0.0 },
+        { "enemy": "corrupted_carrier", "count": 10, "delay": 1.0 },
+        { "enemy": "null_shield", "count": 5, "delay": 3.0 },
+        { "enemy": "mirror_fragment", "count": 4, "delay": 5.0 },
+        { "enemy": "phase_leech", "count": 4, "delay": 8.0 },
+        { "enemy": "parasite_packet", "count": 3, "delay": 11.0 }
+      ],
+      "reward_scrap": 80
+    },
+    "wave_10": {
+      "description": "BOSS WAVE — The Choir with escort",
       "groups": [
         { "enemy": "glitch_swarm", "count": 10, "delay": 0.0 },
-        { "enemy": "corrupted_signal", "count": 4, "delay": 3.0 },
-        { "enemy": "overload_core", "count": 1, "delay": 8.0 }
+        { "enemy": "corrupted_carrier", "count": 4, "delay": 3.0 },
+        { "enemy": "the_choir", "count": 1, "delay": 8.0 }
       ],
-      "reward_resources": 0,
-      "decoded_transmissions_reward": 5,
+      "reward_scrap": 0,
       "is_boss_wave": true
     }
   },

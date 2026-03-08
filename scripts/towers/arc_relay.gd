@@ -18,8 +18,8 @@ extends "res://scripts/towers/tower_base.gd"
 
 const UPGRADE_DATA := [
 	{},
-	{ "damage": 22.0, "attack_speed": 0.9, "range": 3.0, "chain_count": 4, "cost": 100 },
-	{ "damage": 30.0, "attack_speed": 1.0, "range": 3.0, "chain_count": 5, "cost": 200 },
+	{ "damage": 22.0, "attack_speed": 0.9, "range": 3.0, "chain_count": 4, "cost": 110 },
+	{ "damage": 30.0, "attack_speed": 1.0, "range": 3.0, "chain_count": 5, "cost": 155 },
 ]
 
 const MAX_CHAIN_DEPTH := 5
@@ -47,7 +47,8 @@ func _init() -> void:
 	base_damage = 15.0
 	base_attack_speed = 0.8
 	base_range = 3.0
-	base_cost = 150
+	base_cost = 70
+	power_cost = 1
 	tower_color = Color(0.27, 0.53, 1)  # #4488FF
 
 

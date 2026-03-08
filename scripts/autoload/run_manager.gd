@@ -45,8 +45,8 @@ var waves_survived: int = 0
 ## Total enemies killed this run.
 var enemies_killed: int = 0
 
-## Total resources earned this run.
-var resources_earned: int = 0
+## Total scrap earned this run.
+var scrap_earned: int = 0
 
 
 ## ============================================================================
@@ -65,7 +65,7 @@ func start_new_run(seed: int = 0) -> void:
 	tower_upgrades.clear()
 	waves_survived = 0
 	enemies_killed = 0
-	resources_earned = 0
+	scrap_earned = 0
 
 
 ## Apply a run modifier by ID.
@@ -92,7 +92,7 @@ func get_run_summary() -> Dictionary:
 		"seed": run_seed,
 		"waves_survived": waves_survived,
 		"enemies_killed": enemies_killed,
-		"resources_earned": resources_earned,
+		"scrap_earned": scrap_earned,
 		"modifiers": active_modifiers.duplicate(),
 		"rewards": chosen_rewards.duplicate(),
 	}

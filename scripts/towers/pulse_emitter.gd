@@ -3,7 +3,7 @@
 ## ============================================================================
 ##
 ## Purpose: Single-target, high DPS tower. Fires focused energy beams.
-## Synergy: +15% damage near Amplifier, 2x damage to frozen enemies.
+## Synergy: +damage when target is debuffed by Scrambler Dish, 2x damage to frozen enemies.
 ##
 ## @author Signal Lost Team
 ## @version 0.1.0
@@ -17,8 +17,8 @@ extends "res://scripts/towers/tower_base.gd"
 
 const UPGRADE_DATA := [
 	{}, # Level 1 (base stats from exports)
-	{ "damage": 40.0, "attack_speed": 1.4, "range": 4.0, "cost": 75 },
-	{ "damage": 65.0, "attack_speed": 1.6, "range": 4.5, "cost": 150 },
+	{ "damage": 40.0, "attack_speed": 1.4, "range": 4.0, "cost": 80 },
+	{ "damage": 65.0, "attack_speed": 1.6, "range": 4.5, "cost": 110 },
 ]
 
 ## Visual — beam flash duration
@@ -37,7 +37,8 @@ func _init() -> void:
 	base_damage = 25.0
 	base_attack_speed = 1.2
 	base_range = 3.5
-	base_cost = 100
+	base_cost = 50
+	power_cost = 1
 	tower_color = Color(0, 0.78, 1)  # #00C8FF
 
 

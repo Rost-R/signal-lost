@@ -16,7 +16,8 @@ extends Node
 ## SIGNALS
 ## ============================================================================
 
-signal resources_changed(new_amount: int)
+signal scrap_changed(new_amount: int)
+signal power_changed(used: int, cap: int)
 signal core_hp_changed(new_hp: int)
 signal wave_started(wave_number: int)
 signal wave_completed(wave_number: int)
@@ -48,19 +49,23 @@ enum TargetPriority {
 ## CONSTANTS
 ## ============================================================================
 
-const STARTING_RESOURCES := 350
+const STARTING_SCRAP := 140
 const STARTING_CORE_HP := 20
-const MAX_WAVES := 8
+const MAX_WAVES := 10
+const STARTING_POWER_CAP := 8
 
 
 ## ============================================================================
 ## STATE
 ## ============================================================================
 
-var resources: int = STARTING_RESOURCES:
+var scrap: int = STARTING_SCRAP:
 	set(value):
-		resources = max(0, value)
-		resources_changed.emit(resources)
+		scrap = max(0, value)
+		scrap_changed.emit(scrap)
+
+var power_used: int = 0
+var power_cap: int = STARTING_POWER_CAP
 
 var core_hp: int = STARTING_CORE_HP:
 	set(value):
@@ -89,7 +94,9 @@ func _ready() -> void:
 
 ## Reset all game state for a new run.
 func reset() -> void:
-	resources = STARTING_RESOURCES
+	scrap = STARTING_SCRAP
+	power_used = 0
+	power_cap = STARTING_POWER_CAP
 	core_hp = STARTING_CORE_HP
 	current_wave = 0
 	current_phase = GamePhase.BUILD
@@ -97,10 +104,10 @@ func reset() -> void:
 
 
 ## Start a new run with optional modifier adjustments.
-func start_run(starting_resources_override: int = -1, starting_hp_override: int = -1) -> void:
+func start_run(starting_scrap_override: int = -1, starting_hp_override: int = -1) -> void:
 	reset()
-	if starting_resources_override > 0:
-		resources = starting_resources_override
+	if starting_scrap_override > 0:
+		scrap = starting_scrap_override
 	if starting_hp_override > 0:
 		core_hp = starting_hp_override
 	is_running = true
@@ -128,17 +135,37 @@ func damage_core(amount: int) -> void:
 	core_hp -= amount
 
 
-## Add resources (from killing enemies, Data Siphon, etc.).
-func add_resources(amount: int) -> void:
-	resources += amount
+## Add scrap (from killing enemies, Salvage Matrix, etc.).
+func add_scrap(amount: int) -> void:
+	scrap += amount
 
 
-## Spend resources (tower placement, upgrades). Returns false if insufficient.
-func spend_resources(amount: int) -> bool:
-	if resources >= amount:
-		resources -= amount
+## Spend scrap (tower placement, upgrades). Returns false if insufficient.
+func spend_scrap(amount: int) -> bool:
+	if scrap >= amount:
+		scrap -= amount
 		return true
 	return false
+
+
+## Check if there is enough power to place a tower.
+func can_use_power(cost: int) -> bool:
+	return power_used + cost <= power_cap
+
+
+## Use power when placing a tower.
+func use_power(cost: int) -> bool:
+	if not can_use_power(cost):
+		return false
+	power_used += cost
+	power_changed.emit(power_used, power_cap)
+	return true
+
+
+## Release power when selling a tower.
+func release_power(cost: int) -> void:
+	power_used = max(0, power_used - cost)
+	power_changed.emit(power_used, power_cap)
 
 
 ## ============================================================================

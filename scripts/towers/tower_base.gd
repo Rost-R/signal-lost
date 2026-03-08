@@ -33,8 +33,9 @@ signal attack_fired(target: Node2D)
 @export var base_damage: float = 0.0
 @export var base_attack_speed: float = 1.0
 @export var base_range: float = 3.0
-@export var base_cost: int = 100
-@export var sell_refund_percent: float = 0.6
+@export var base_cost: int = 50
+@export var power_cost: int = 1
+@export var sell_refund_percent: float = 0.7
 @export var tower_color: Color = Color.CYAN
 
 
@@ -133,7 +134,7 @@ func upgrade() -> bool:
 	if level >= 3:
 		return false
 	var cost := _get_upgrade_cost(level + 1)
-	if not GameManager.spend_resources(cost):
+	if not GameManager.spend_scrap(cost):
 		return false
 	level += 1
 	recalculate_stats()

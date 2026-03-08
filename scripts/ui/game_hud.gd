@@ -2,7 +2,7 @@
 ## GAME HUD
 ## ============================================================================
 ##
-## Purpose: In-game heads-up display. Shows core HP, resources, wave info,
+## Purpose: In-game heads-up display. Shows core HP, scrap, power, wave info,
 ## tower selection panel, and selected tower info.
 ## All drawn via _draw() for the CRT aesthetic.
 ##
@@ -34,12 +34,12 @@ const WARNING_COLOR := Color(1, 0.73, 0)  # Amber
 const DANGER_COLOR := Color(1, 0.13, 0.27)  # Red
 
 const TOWER_OPTIONS := [
-	{ "id": "pulse_emitter", "name": "Pulse", "cost": 100, "key": "1", "color": Color(0, 0.78, 1) },
-	{ "id": "arc_relay", "name": "Arc", "cost": 150, "key": "2", "color": Color(0.27, 0.53, 1) },
-	{ "id": "cryo_node", "name": "Cryo", "cost": 120, "key": "3", "color": Color(0.53, 0.87, 1) },
-	{ "id": "data_siphon", "name": "Siphon", "cost": 200, "key": "4", "color": Color(0, 1, 0.53) },
-	{ "id": "amplifier", "name": "Amp", "cost": 180, "key": "5", "color": Color(1, 0.87, 0.27) },
-	{ "id": "shield_generator", "name": "Shield", "cost": 250, "key": "6", "color": Color(0.67, 0.27, 1) },
+	{ "id": "pulse_emitter", "name": "Pulse", "cost": 50, "power": 1, "key": "1", "color": Color(0, 0.78, 1) },
+	{ "id": "arc_relay", "name": "Arc", "cost": 70, "power": 1, "key": "2", "color": Color(0.27, 0.53, 1) },
+	{ "id": "cryo_node", "name": "Cryo", "cost": 60, "power": 1, "key": "3", "color": Color(0.53, 0.87, 1) },
+	{ "id": "scrambler_dish", "name": "Scramble", "cost": 75, "power": 1, "key": "4", "color": Color(0.86, 0.44, 1) },
+	{ "id": "prism_beam", "name": "Prism", "cost": 90, "power": 2, "key": "5", "color": Color(1, 0.84, 0) },
+	{ "id": "salvage_matrix", "name": "Salvage", "cost": 80, "power": 1, "key": "6", "color": Color(0.2, 0.9, 0.4) },
 ]
 
 
@@ -65,7 +65,8 @@ func _ready() -> void:
 	_draw_node.draw.connect(_on_draw)
 	add_child(_draw_node)
 
-	GameManager.resources_changed.connect(func(_v: int): _draw_node.queue_redraw())
+	GameManager.scrap_changed.connect(func(_v: int): _draw_node.queue_redraw())
+	GameManager.power_changed.connect(func(_u: int, _c: int): _draw_node.queue_redraw())
 	GameManager.core_hp_changed.connect(func(_v: int): _draw_node.queue_redraw())
 	GameManager.wave_started.connect(func(_v: int): _draw_node.queue_redraw())
 	GameManager.wave_completed.connect(func(_v: int): _draw_node.queue_redraw())
@@ -178,11 +179,17 @@ func _draw_top_bar(vp_size: Vector2) -> void:
 		hp_color = WARNING_COLOR
 	_draw_node.draw_string(font, Vector2(12, 22), "CORE: %d/%d" % [GameManager.core_hp, GameManager.STARTING_CORE_HP], HORIZONTAL_ALIGNMENT_LEFT, -1, 14, hp_color)
 
-	## Resources
-	_draw_node.draw_string(font, Vector2(220, 22), "RES: %d" % GameManager.resources, HORIZONTAL_ALIGNMENT_LEFT, -1, 14, ACCENT_COLOR)
+	## Scrap
+	_draw_node.draw_string(font, Vector2(220, 22), "SCRAP: %d" % GameManager.scrap, HORIZONTAL_ALIGNMENT_LEFT, -1, 14, ACCENT_COLOR)
+
+	## Power
+	var pwr_color := TEXT_COLOR
+	if GameManager.power_used >= GameManager.power_cap:
+		pwr_color = WARNING_COLOR
+	_draw_node.draw_string(font, Vector2(380, 22), "PWR: %d/%d" % [GameManager.power_used, GameManager.power_cap], HORIZONTAL_ALIGNMENT_LEFT, -1, 14, pwr_color)
 
 	## Wave
-	_draw_node.draw_string(font, Vector2(400, 22), "WAVE: %d/%d" % [GameManager.current_wave, GameManager.MAX_WAVES], HORIZONTAL_ALIGNMENT_LEFT, -1, 14, TEXT_COLOR)
+	_draw_node.draw_string(font, Vector2(530, 22), "WAVE: %d/%d" % [GameManager.current_wave, GameManager.MAX_WAVES], HORIZONTAL_ALIGNMENT_LEFT, -1, 14, TEXT_COLOR)
 
 
 func _draw_tower_panel(vp_size: Vector2) -> void:
@@ -218,10 +225,10 @@ func _draw_tower_panel(vp_size: Vector2) -> void:
 		_draw_node.draw_rect(rect, border, false, 1.0)
 
 		## Text
-		var can_afford: bool = GameManager.resources >= opt["cost"]
+		var can_afford: bool = GameManager.scrap >= opt["cost"] and GameManager.can_use_power(opt["power"])
 		var text_col: Color = opt["color"] if can_afford else Color(0.4, 0.4, 0.4)
 		_draw_node.draw_string(font, Vector2(rect.position.x + 4, rect.position.y + 16), "[%s] %s" % [opt["key"], opt["name"]], HORIZONTAL_ALIGNMENT_LEFT, -1, 11, text_col)
-		_draw_node.draw_string(font, Vector2(rect.position.x + 4, rect.position.y + 32), "$%d" % opt["cost"], HORIZONTAL_ALIGNMENT_LEFT, -1, 10, text_col * Color(1, 1, 1, 0.7))
+		_draw_node.draw_string(font, Vector2(rect.position.x + 4, rect.position.y + 32), "$%d P%d" % [opt["cost"], opt["power"]], HORIZONTAL_ALIGNMENT_LEFT, -1, 10, text_col * Color(1, 1, 1, 0.7))
 
 	## Start Wave button (during build phase)
 	if GameManager.current_phase == GameManager.GamePhase.BUILD or \
@@ -315,11 +322,6 @@ func _draw_tower_info_panel(vp_size: Vector2) -> void:
 		_draw_node.draw_string(font, Vector2(x, y), "RNG: %.1f" % _selected_tower.effective_range, HORIZONTAL_ALIGNMENT_LEFT, -1, 11, TEXT_COLOR)
 		y += 14
 
-	## Shield (for Shield Generator)
-	if _selected_tower.has_method("absorb_damage") and "current_shield" in _selected_tower:
-		_draw_node.draw_string(font, Vector2(x, y), "SHIELD: %d/%d" % [int(_selected_tower.current_shield), _selected_tower.max_shield_hp], HORIZONTAL_ALIGNMENT_LEFT, -1, 11, Color(0.67, 0.27, 1))
-		y += 14
-
 	## Targeting priority (for attack towers)
 	if "target_priority" in _selected_tower and "effective_attack_speed" in _selected_tower and _selected_tower.effective_attack_speed > 0:
 		var priority_names := ["FIRST", "LAST", "STRONG", "WEAK"]
@@ -333,7 +335,7 @@ func _draw_tower_info_panel(vp_size: Vector2) -> void:
 	if t_level < 3:
 		var upgrade_cost: int = _selected_tower.get_next_upgrade_cost() if _selected_tower.has_method("get_next_upgrade_cost") else -1
 		if upgrade_cost > 0:
-			var can_upgrade: bool = GameManager.resources >= upgrade_cost
+			var can_upgrade: bool = GameManager.scrap >= upgrade_cost
 			var u_col: Color = ACCENT_COLOR if can_upgrade else Color(0.4, 0.4, 0.4)
 			_draw_node.draw_string(font, Vector2(x, y), "[U] Upgrade $%d" % upgrade_cost, HORIZONTAL_ALIGNMENT_LEFT, -1, 11, u_col)
 			y += 16

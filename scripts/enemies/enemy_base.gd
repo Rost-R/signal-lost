@@ -50,6 +50,8 @@ var _total_path_length: float = 0.0
 var _slow_percent: float = 0.0
 var _is_frozen: bool = false
 var _freeze_timer: float = 0.0
+var _debuff_percent: float = 0.0  # Armor reduction from Scrambler Dish
+var _debuff_timer: float = 0.0
 
 ## Shield (for Corrupted Signal)
 var shield_hp: float = 0.0
@@ -77,6 +79,12 @@ func _physics_process(delta: float) -> void:
 		else:
 			queue_redraw()
 			return  # Frozen — don't move
+
+	## Update debuff timer
+	if _debuff_timer > 0:
+		_debuff_timer -= delta
+		if _debuff_timer <= 0:
+			_debuff_percent = 0.0
 
 	## Movement
 	var speed := base_speed * (1.0 - _slow_percent / 100.0)
@@ -133,9 +141,10 @@ func setup(path: PackedVector2Array, hp_multiplier: float = 1.0) -> void:
 	add_to_group("enemies")
 
 
-## Apply damage, accounting for armor and shields.
+## Apply damage, accounting for armor (reduced by debuff) and shields.
 func take_damage(amount: float) -> void:
-	var effective_damage := maxf(amount - armor, 1.0)
+	var current_armor := armor * (1.0 - _debuff_percent / 100.0)
+	var effective_damage := maxf(amount - current_armor, 1.0)
 
 	## Shield absorbs first
 	if shield_hp > 0:
@@ -164,6 +173,12 @@ func apply_slow(percent: float) -> void:
 func apply_freeze(duration: float) -> void:
 	_is_frozen = true
 	_freeze_timer = duration
+
+
+## Apply armor/resistance debuff from Scrambler Dish.
+func apply_debuff(percent: float, duration: float) -> void:
+	_debuff_percent = maxf(_debuff_percent, percent)
+	_debuff_timer = maxf(_debuff_timer, duration)
 
 
 ## Check if currently frozen.
@@ -200,9 +215,9 @@ func on_pool_release() -> void:
 ## ============================================================================
 
 func _die() -> void:
-	GameManager.add_resources(reward)
+	GameManager.add_scrap(reward)
 	RunManager.enemies_killed += 1
-	RunManager.resources_earned += reward
+	RunManager.scrap_earned += reward
 	enemy_died.emit(self)
 
 

@@ -188,14 +188,6 @@ func count_adjacent_of_type(grid_pos: Vector2i, tower_id: String) -> int:
 	return count
 
 
-## Count all adjacent non-amplifier towers.
-func count_adjacent_non_amplifier(grid_pos: Vector2i) -> int:
-	var count := 0
-	for tower in get_adjacent_tower_nodes(grid_pos):
-		if tower.has_method("get_tower_id") and tower.get_tower_id() != "amplifier":
-			count += 1
-	return count
-
 
 ## Get all placed tower positions.
 func get_all_tower_positions() -> Array[Vector2i]:
