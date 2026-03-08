@@ -165,7 +165,7 @@ func _on_enemy_reached_core_with_shield(enemy: Node2D) -> void:
 
 	## Apply remaining damage to core (subtract the already-applied damage and re-add difference)
 	## The enemy_base already called damage_core, so we compensate by healing the absorbed amount
-	var absorbed := (enemy.damage_to_core if "damage_to_core" in enemy else 1) - damage
+	var absorbed: int = (enemy.damage_to_core if "damage_to_core" in enemy else 1) - damage
 	if absorbed > 0:
 		GameManager.core_hp += absorbed  # Heal back what shields absorbed
 
@@ -263,7 +263,7 @@ func _place_tower(grid_pos: Vector2i, tower_id: String) -> void:
 func _sell_tower(grid_pos: Vector2i, tower: Node2D) -> void:
 	var refund: int = tower.get_sell_value()
 	GameManager.add_resources(refund)
-	var adj_positions := _grid.get_adjacent_towers(grid_pos)
+	var adj_positions: Array[Vector2i] = _grid.get_adjacent_towers(grid_pos)
 	_grid.remove_tower(grid_pos)
 	tower.queue_free()
 
