@@ -1,0 +1,44 @@
+# Godot 4+ specific ignores
+.godot/
+*.translation
+
+# Godot-specific ignores
+.import/
+export.cfg
+export_presets.cfg
+
+# Imported translations (Alarm if not already in .gitignore)
+*.po
+
+# Mono-specific ignores
+.mono/
+data_*/
+mono_crash.*.json
+
+# Build exports
+exports/windows/
+exports/macos/
+exports/linux/
+
+# OS generated files
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Temp files
+.tmp/
+
+# Environment
+.env
+.env.local
+.env.production

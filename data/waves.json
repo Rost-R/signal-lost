@@ -1,0 +1,92 @@
+{
+  "_comment": "Wave compositions for Signal Lost. 8 waves per run. Compositions scale with wave number.",
+  "wave_templates": {
+    "wave_1": {
+      "description": "Introduction — easy swarm only",
+      "groups": [
+        { "enemy": "glitch_swarm", "count": 8, "delay": 0.0 }
+      ],
+      "reward_resources": 50,
+      "decoded_transmissions_reward": 1
+    },
+    "wave_2": {
+      "description": "Introduce shielded enemies",
+      "groups": [
+        { "enemy": "glitch_swarm", "count": 10, "delay": 0.0 },
+        { "enemy": "corrupted_signal", "count": 3, "delay": 5.0 }
+      ],
+      "reward_resources": 60,
+      "decoded_transmissions_reward": 1
+    },
+    "wave_3": {
+      "description": "First elite enemy — Data Leech",
+      "groups": [
+        { "enemy": "glitch_swarm", "count": 12, "delay": 0.0 },
+        { "enemy": "corrupted_signal", "count": 4, "delay": 3.0 },
+        { "enemy": "data_leech", "count": 1, "delay": 8.0 }
+      ],
+      "reward_resources": 75,
+      "decoded_transmissions_reward": 2
+    },
+    "wave_4": {
+      "description": "Stealth threat introduced",
+      "groups": [
+        { "enemy": "glitch_swarm", "count": 15, "delay": 0.0 },
+        { "enemy": "phantom_burst", "count": 2, "delay": 4.0 },
+        { "enemy": "corrupted_signal", "count": 5, "delay": 6.0 }
+      ],
+      "reward_resources": 85,
+      "decoded_transmissions_reward": 2
+    },
+    "wave_5": {
+      "description": "Mixed assault — all common and elite types",
+      "groups": [
+        { "enemy": "glitch_swarm", "count": 18, "delay": 0.0 },
+        { "enemy": "corrupted_signal", "count": 6, "delay": 2.0 },
+        { "enemy": "data_leech", "count": 2, "delay": 6.0 },
+        { "enemy": "phantom_burst", "count": 2, "delay": 10.0 }
+      ],
+      "reward_resources": 100,
+      "decoded_transmissions_reward": 3
+    },
+    "wave_6": {
+      "description": "Heavy assault — more elites",
+      "groups": [
+        { "enemy": "glitch_swarm", "count": 22, "delay": 0.0 },
+        { "enemy": "corrupted_signal", "count": 8, "delay": 2.0 },
+        { "enemy": "data_leech", "count": 3, "delay": 5.0 },
+        { "enemy": "phantom_burst", "count": 3, "delay": 8.0 }
+      ],
+      "reward_resources": 120,
+      "decoded_transmissions_reward": 3
+    },
+    "wave_7": {
+      "description": "Pre-boss gauntlet — maximum pressure",
+      "groups": [
+        { "enemy": "glitch_swarm", "count": 25, "delay": 0.0 },
+        { "enemy": "corrupted_signal", "count": 10, "delay": 1.0 },
+        { "enemy": "data_leech", "count": 3, "delay": 4.0 },
+        { "enemy": "phantom_burst", "count": 4, "delay": 7.0 }
+      ],
+      "reward_resources": 150,
+      "decoded_transmissions_reward": 4
+    },
+    "wave_8": {
+      "description": "BOSS WAVE — Overload Core with minion support",
+      "groups": [
+        { "enemy": "glitch_swarm", "count": 10, "delay": 0.0 },
+        { "enemy": "corrupted_signal", "count": 4, "delay": 3.0 },
+        { "enemy": "overload_core", "count": 1, "delay": 8.0 }
+      ],
+      "reward_resources": 0,
+      "decoded_transmissions_reward": 5,
+      "is_boss_wave": true
+    }
+  },
+  "scaling": {
+    "_comment": "Applied per wave on top of base enemy stats",
+    "difficulty_curve": "exponential",
+    "base_multiplier": 1.0,
+    "per_wave_multiplier": 1.12
+  }
+}

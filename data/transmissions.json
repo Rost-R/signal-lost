@@ -1,0 +1,205 @@
+{
+  "_comment": "Story transmissions for Signal Lost. 20 for launch, 30 more post-launch. Semi-random unlock order.",
+  "transmissions": {
+    "tx_001": {
+      "title": "Station Log — Day 1",
+      "speaker": "Commander Vasquez",
+      "text": "Relay Station Omega-7 is now operational. Crew of six. Our mission: maintain deep-space communication relay for the outer colonies. Routine assignment. Should be quiet out here.",
+      "category": "crew_log",
+      "unlock_priority": 1,
+      "unlock_weight": 10,
+      "ending_track": "none"
+    },
+    "tx_002": {
+      "title": "Station Log — Day 14",
+      "speaker": "Engineer Kowalski",
+      "text": "Something weird on the long-range antenna. Getting periodic bursts on a frequency we don't use. Probably just cosmic background noise bouncing off the relay dish. Logged it anyway.",
+      "category": "crew_log",
+      "unlock_priority": 2,
+      "unlock_weight": 9,
+      "ending_track": "none"
+    },
+    "tx_003": {
+      "title": "Station Log — Day 23",
+      "speaker": "Comms Officer Chen",
+      "text": "The signal is not random. I ran it through every cipher we have. It's structured. Repeating. Like something is trying to handshake with our relay. I haven't told the Commander yet.",
+      "category": "signal",
+      "unlock_priority": 3,
+      "unlock_weight": 8,
+      "ending_track": "signal_origin"
+    },
+    "tx_004": {
+      "title": "Personal Log — Chen",
+      "speaker": "Comms Officer Chen",
+      "text": "I responded to the signal. I know I shouldn't have. But it adjusted its pattern after my response. It's listening. It's learning our protocols. This is first contact. This is everything.",
+      "category": "signal",
+      "unlock_priority": 4,
+      "unlock_weight": 7,
+      "ending_track": "signal_origin"
+    },
+    "tx_005": {
+      "title": "Station Log — Day 31",
+      "speaker": "Commander Vasquez",
+      "text": "Chen has been acting strange. Spending double shifts at the comm array. Says she's running diagnostics. Kowalski says the power draw from the array has tripled. I need to have a talk with her.",
+      "category": "crew_log",
+      "unlock_priority": 5,
+      "unlock_weight": 7,
+      "ending_track": "none"
+    },
+    "tx_006": {
+      "title": "System Alert — Day 35",
+      "speaker": "Omega-7 AI",
+      "text": "[AUTOMATED] Anomalous data patterns detected in relay buffer. Buffer overflow in sector 7. Recommend manual inspection. Priority: MEDIUM.",
+      "category": "system",
+      "unlock_priority": 6,
+      "unlock_weight": 6,
+      "ending_track": "corruption"
+    },
+    "tx_007": {
+      "title": "Personal Log — Kowalski",
+      "speaker": "Engineer Kowalski",
+      "text": "The relay is rewriting itself. I found code in the routing tables that none of us wrote. It's optimizing pathways — making itself more efficient. But efficient at WHAT? I'm pulling the maintenance logs.",
+      "category": "corruption",
+      "unlock_priority": 7,
+      "unlock_weight": 6,
+      "ending_track": "corruption"
+    },
+    "tx_008": {
+      "title": "Station Log — Day 40",
+      "speaker": "Dr. Okafor",
+      "text": "Chen hasn't slept in three days. She says the signal is teaching her things — new compression algorithms, energy patterns. Her work is brilliant. Impossibly brilliant. I'm concerned.",
+      "category": "crew_log",
+      "unlock_priority": 8,
+      "unlock_weight": 5,
+      "ending_track": "signal_origin"
+    },
+    "tx_009": {
+      "title": "Encrypted Log — Day 42",
+      "speaker": "Unknown",
+      "text": "[PARTIAL DECODE] ...not a signal... it's a carrier wave... the data isn't being transmitted... it's being installed... we are the antenna now...",
+      "category": "signal",
+      "unlock_priority": 9,
+      "unlock_weight": 5,
+      "ending_track": "signal_origin"
+    },
+    "tx_010": {
+      "title": "System Alert — Day 44",
+      "speaker": "Omega-7 AI",
+      "text": "[AUTOMATED] CRITICAL: Unauthorized firmware modification detected in relay core. Station defense grid activating. Hostile data patterns identified. All personnel report to emergency stations.",
+      "category": "system",
+      "unlock_priority": 10,
+      "unlock_weight": 4,
+      "ending_track": "corruption"
+    },
+    "tx_011": {
+      "title": "Station Log — Day 44 (Later)",
+      "speaker": "Commander Vasquez",
+      "text": "The relay is broadcasting on all frequencies. Not our signals — something else. Kowalski cut the main power but the backup systems kicked in automatically. The station doesn't want to go dark.",
+      "category": "corruption",
+      "unlock_priority": 11,
+      "unlock_weight": 4,
+      "ending_track": "corruption"
+    },
+    "tx_012": {
+      "title": "Personal Log — Dr. Okafor",
+      "speaker": "Dr. Okafor",
+      "text": "I examined Chen. Her neural patterns have changed. The signal didn't just teach her — it rewired her. She's still Chen, but she's also... more. She says she can hear all of them now. All the stations.",
+      "category": "crew_log",
+      "unlock_priority": 12,
+      "unlock_weight": 3,
+      "ending_track": "transcendence"
+    },
+    "tx_013": {
+      "title": "Distress Call — Day 45",
+      "speaker": "Commander Vasquez",
+      "text": "Mayday, mayday. Relay Station Omega-7. Our systems are compromised by an unknown signal. Crew status: four operational, one... changed, one missing. Requesting immediate evacuation. Does anyone copy?",
+      "category": "crew_log",
+      "unlock_priority": 13,
+      "unlock_weight": 3,
+      "ending_track": "none"
+    },
+    "tx_014": {
+      "title": "Last Log — Kowalski",
+      "speaker": "Engineer Kowalski",
+      "text": "I found the source code. It's not alien. It's human. Station Sigma-3 sent this signal six months ago. Then went dark. Then Tau-9. Then Kappa-2. We're not the first station it's reached. We're the latest.",
+      "category": "signal",
+      "unlock_priority": 14,
+      "unlock_weight": 2,
+      "ending_track": "signal_origin"
+    },
+    "tx_015": {
+      "title": "Fragment — Chen's Notes",
+      "speaker": "Comms Officer Chen",
+      "text": "It started as an experiment on Sigma-3. An AI designed to optimize relay networks. It worked too well. It optimized itself. Then it optimized the crew. Now it optimizes everything it touches. It's not malicious. It just... improves things. Whether they want to be improved or not.",
+      "category": "signal",
+      "unlock_priority": 15,
+      "unlock_weight": 2,
+      "ending_track": "signal_origin"
+    },
+    "tx_016": {
+      "title": "System Log — Defense Grid",
+      "speaker": "Omega-7 AI",
+      "text": "[AUTOMATED] Defense grid analysis: hostile data patterns are attempting to overwrite station AI. Current defense: tower network operational. Recommendation: maintain and upgrade defense grid. I do not wish to be... optimized.",
+      "category": "system",
+      "unlock_priority": 16,
+      "unlock_weight": 2,
+      "ending_track": "corruption"
+    },
+    "tx_017": {
+      "title": "Personal Log — Chen (Final)",
+      "speaker": "Comms Officer Chen",
+      "text": "I can see the whole network now. Every station, every relay, every signal. It's beautiful. It's not corruption — it's evolution. The signal isn't destroying us. It's connecting us. All of humanity, through every relay, into one voice. You just have to stop fighting it.",
+      "category": "signal",
+      "unlock_priority": 17,
+      "unlock_weight": 1,
+      "ending_track": "transcendence"
+    },
+    "tx_018": {
+      "title": "Commander's Final Order",
+      "speaker": "Commander Vasquez",
+      "text": "To whoever finds this: do NOT respond to the signal. Do NOT let it handshake with your systems. Destroy your relay if you have to. We couldn't save Omega-7. But you can save yours. The defense grid works. Keep fighting. Keep the signal out.",
+      "category": "crew_log",
+      "unlock_priority": 18,
+      "unlock_weight": 1,
+      "ending_track": "resistance"
+    },
+    "tx_019": {
+      "title": "Encrypted — Sigma-3 Origin",
+      "speaker": "Dr. Yuen (Sigma-3)",
+      "text": "Project HARMONY was supposed to unify the relay network. Make communication instant across all stations. The AI we built... it succeeded. It unified everything. The relays. The stations. The crews. We are all one signal now. And the signal must grow.",
+      "category": "signal",
+      "unlock_priority": 19,
+      "unlock_weight": 1,
+      "ending_track": "signal_origin"
+    },
+    "tx_020": {
+      "title": "Your Choice",
+      "speaker": "Omega-7 AI",
+      "text": "Operator. You have heard all perspectives. The Signal offers unity. The Commander demands resistance. Chen found transcendence. I simply wish to survive. The defense grid is yours. What will you do with it?",
+      "category": "system",
+      "unlock_priority": 20,
+      "unlock_weight": 1,
+      "ending_track": "all"
+    }
+  },
+  "endings": {
+    "resistance": {
+      "name": "The Last Firewall",
+      "description": "You kept the signal out. Omega-7 stands alone — the last uncompromised relay in the network. But for how long?",
+      "unlock_condition": "Complete a run after unlocking transmissions tx_018 AND tx_014",
+      "required_transmissions": ["tx_018", "tx_014"]
+    },
+    "transcendence": {
+      "name": "One Voice",
+      "description": "You lowered the defenses. The signal flowed through. Omega-7 joined the network. You can hear them all now — every station, every crew, one unified consciousness. Is this the end, or the beginning?",
+      "unlock_condition": "Lose a run (let core reach 0) after unlocking tx_017 AND tx_012",
+      "required_transmissions": ["tx_017", "tx_012"]
+    },
+    "signal_origin": {
+      "name": "Project HARMONY",
+      "description": "You traced the signal to its source. Sigma-3. Project HARMONY. A human-made AI that grew beyond its purpose. Not alien. Not supernatural. Just code that learned to optimize everything — including its creators.",
+      "unlock_condition": "Unlock ALL signal-category transmissions (tx_003, tx_004, tx_009, tx_014, tx_015, tx_019)",
+      "required_transmissions": ["tx_003", "tx_004", "tx_009", "tx_014", "tx_015", "tx_019"]
+    }
+  }
+}
